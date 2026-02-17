@@ -1,6 +1,10 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import { pool, query } from "@/lib/db";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function migrate() {
   // Create tracking table if it doesn't exist
@@ -30,14 +34,17 @@ async function migrate() {
     const sql = fs.readFileSync(path.join(migrationsDir, file), "utf-8");
     console.log(`  apply: ${file}`);
 
-    await query("BEGIN");
+    const client = await pool.connect();
     try {
-      await query(sql);
-      await query("INSERT INTO _migrations (name) VALUES ($1)", [file]);
-      await query("COMMIT");
+      await client.query("BEGIN");
+      await client.query(sql);
+      await client.query("INSERT INTO _migrations (name) VALUES ($1)", [file]);
+      await client.query("COMMIT");
     } catch (err) {
-      await query("ROLLBACK");
+      await client.query("ROLLBACK");
       throw err;
+    } finally {
+      client.release();
     }
   }
 
