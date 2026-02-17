@@ -6,11 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "dev:db": "docker compose up -d",
+    "dev:migrate": "npx tsx --env-file=.env.local src/scripts/migrate.ts",
+    "dev:full": "docker compose up -d && --env.file=.env.local npx tsx src/scripts/migrate.ts && next dev"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",
     "bullmq": "^5.69.3",
+    "dotenv": "^17.3.1",
     "ioredis": "^5.9.3",
     "next": "16.1.6",
     "pg": "^8.18.0",
