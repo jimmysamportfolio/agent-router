@@ -41,8 +41,13 @@ async function migrate() {
       await client.query("INSERT INTO _migrations (name) VALUES ($1)", [file]);
       await client.query("COMMIT");
     } catch (err) {
-      await client.query("ROLLBACK");
-      throw err;
+      const originalErr = err;
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackErr) {
+        console.error("ROLLBACK failed:", rollbackErr);
+      }
+      throw originalErr;
     } finally {
       client.release();
     }
