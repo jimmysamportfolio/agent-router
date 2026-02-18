@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function seed() {
-  const policiesDir = path.resolve(__dirname, "../policies");
+  const policiesDir = path.resolve(__dirname, "../../policies");
   const files = fs
     .readdirSync(policiesDir)
     .filter((f) => f.endsWith(".md"))

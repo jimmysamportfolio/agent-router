@@ -6,7 +6,7 @@ import {
   ensureMigrationsTable,
   getAppliedMigrations,
   applyMigration,
-} from "@/lib/db/queries/migrations";
+} from "@/lib/db/migrations";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
