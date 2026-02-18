@@ -6,6 +6,12 @@ if (!process.env.DATABASE_URL) {
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  max: parseInt(process.env.DB_POOL_MAX ?? "10", 10),
+  connectionTimeoutMillis: parseInt(
+    process.env.DB_CONN_TIMEOUT_MS ?? "5000",
+    10
+  ),
+  idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT_MS ?? "30000", 10),
 });
 
 export async function query<T extends QueryResultRow>(
