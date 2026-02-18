@@ -3,7 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { pool } from "@/lib/db/pool";
 import { chunkPolicy, embedTexts } from "@/lib/utils/embedding";
-import { clearPolicyChunks, upsertPolicyChunks } from "@/lib/db/queries/policies";
+import { replaceAllPolicyChunks } from "@/lib/db/queries/policies";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,8 +28,7 @@ async function seed() {
   const embeddings = await embedTexts(allChunks.map((c) => c.content));
 
   console.log("Inserting into policy_chunks...");
-  await clearPolicyChunks();
-  await upsertPolicyChunks(allChunks, embeddings);
+  await replaceAllPolicyChunks(allChunks, embeddings);
 
   console.log(`Seeded ${allChunks.length} policy chunks.`);
   await pool.end();
