@@ -9,10 +9,6 @@ const OVERLAP_CHARS = OVERLAP_TOKENS * CHARS_PER_TOKEN;
 
 const openai = new OpenAI();
 
-// ---------------------------------------------------------------------------
-// Chunking
-// ---------------------------------------------------------------------------
-
 export interface PolicyChunk {
   sourceFile: string;
   chunkIndex: number;
@@ -21,8 +17,8 @@ export interface PolicyChunk {
 }
 
 function extractSections(text: string): string[] {
-  const matches = text.match(/^##\s+.+$/gm);
-  return matches ? matches.map((m) => m.replace(/^##\s+/, "")) : [];
+  const matches = [...text.matchAll(/^#{1,6}\s+(.+)$/gm)];
+  return matches.map((m) => m[1]!.trim());
 }
 
 export function chunkPolicy(sourceFile: string, text: string): PolicyChunk[] {
@@ -49,18 +45,16 @@ export function chunkPolicy(sourceFile: string, text: string): PolicyChunk[] {
       metadata: { sections: extractSections(slice) },
     });
 
-    start += slice.length - OVERLAP_CHARS;
+    // add at least 1 since slice.length - OVERLAP_CHARS might be 0 to avoid infinite loop
+    start += Math.max(1, slice.length - OVERLAP_CHARS); 
     chunkIndex++;
   }
 
   return chunks;
 }
 
-// ---------------------------------------------------------------------------
-// Embedding
-// ---------------------------------------------------------------------------
-
 export async function embedTexts(texts: string[]): Promise<number[][]> {
+  if (texts.length === 0) return [];
   const res = await openai.embeddings.create({
     model: EMBEDDING_MODEL,
     input: texts,
