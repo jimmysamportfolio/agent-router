@@ -1,4 +1,4 @@
-import { Pool, QueryResultRow } from "pg";
+import { Pool, PoolClient, QueryResultRow } from "pg";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is required");
@@ -22,6 +22,27 @@ export async function queryOne<T extends QueryResultRow>(
 ): Promise<T | undefined> {
   const rows = await query<T>(sql, params);
   return rows[0];
+}
+
+export async function executeInTransaction<T>(
+  execute: (client: PoolClient) => Promise<T>
+): Promise<T> {
+  const connection = await pool.connect();
+  try {
+    await connection.query("BEGIN");
+    const result = await execute(connection);
+    await connection.query("COMMIT");
+    return result;
+  } catch (originalError) {
+    try {
+      await connection.query("ROLLBACK");
+    } catch (rollbackError) {
+      console.error("ROLLBACK failed:", rollbackError);
+    }
+    throw originalError;
+  } finally {
+    connection.release();
+  }
 }
 
 export { pool };
