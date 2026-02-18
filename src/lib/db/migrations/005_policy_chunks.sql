@@ -5,7 +5,7 @@ CREATE TABLE policy_chunks (
   source_file TEXT NOT NULL,
   chunk_index INTEGER NOT NULL,
   content     TEXT NOT NULL,
-  embedding   vector(1536) NOT NULL,
+  embedding   vector(768) NOT NULL,
   metadata    JSONB DEFAULT '{}',
   UNIQUE (source_file, chunk_index)
 );
