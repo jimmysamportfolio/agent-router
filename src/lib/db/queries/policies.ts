@@ -1,46 +1,83 @@
-import { pool, query } from "@/lib/db/pool";
+import { query, executeInTransaction } from "@/lib/db/pool";
 import type { PolicyChunk } from "@/lib/utils/embedding";
-
-export async function clearPolicyChunks(): Promise<void> {
-  await query("DELETE FROM policy_chunks");
-}
 
 export async function upsertPolicyChunks(
   chunks: PolicyChunk[],
   embeddings: number[][]
 ): Promise<void> {
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i]!;
-      const vector = `[${embeddings[i]!.join(",")}]`;
-
-      await client.query(
-        `INSERT INTO policy_chunks (source_file, chunk_index, content, embedding, metadata)
-         VALUES ($1, $2, $3, $4::vector, $5)
-         ON CONFLICT (source_file, chunk_index) DO UPDATE
-           SET content   = EXCLUDED.content,
-               embedding = EXCLUDED.embedding,
-               metadata  = EXCLUDED.metadata`,
-        [
-          chunk.sourceFile,
-          chunk.chunkIndex,
-          chunk.content,
-          vector,
-          JSON.stringify(chunk.metadata),
-        ]
-      );
-    }
-
-    await client.query("COMMIT");
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
+  if (chunks.length !== embeddings.length) {
+    throw new Error(
+      `chunks/embeddings length mismatch: ${chunks.length} chunks vs ${embeddings.length} embeddings`
+    );
   }
+
+  if (chunks.length === 0) return;
+
+  await executeInTransaction(async (connection) => {
+    const params: unknown[] = [];
+    const valuePlaceholders = chunks.map((chunk, index) => {
+      const offset = params.length + 1;
+      params.push(
+        chunk.sourceFile,
+        chunk.chunkIndex,
+        chunk.content,
+        `[${embeddings[index]!.join(",")}]`,
+        JSON.stringify(chunk.metadata)
+      );
+      return `($${offset}, $${offset + 1}, $${offset + 2}, $${offset + 3}::vector, $${offset + 4})`;
+    });
+
+    await connection.query(
+      `INSERT INTO policy_chunks (source_file, chunk_index, content, embedding, metadata)
+       VALUES ${valuePlaceholders.join(", ")}
+       ON CONFLICT (source_file, chunk_index) DO UPDATE
+         SET content   = EXCLUDED.content,
+             embedding = EXCLUDED.embedding,
+             metadata  = EXCLUDED.metadata`,
+      params
+    );
+  });
+}
+
+/** Atomically deletes all existing chunks and inserts the new ones. */
+export async function replaceAllPolicyChunks(
+  chunks: PolicyChunk[],
+  embeddings: number[][]
+): Promise<void> {
+  if (chunks.length !== embeddings.length) {
+    throw new Error(
+      `chunks/embeddings length mismatch: ${chunks.length} chunks vs ${embeddings.length} embeddings`
+    );
+  }
+
+  await executeInTransaction(async (connection) => {
+    await connection.query("DELETE FROM policy_chunks");
+
+    if (chunks.length === 0) return;
+
+    const params: unknown[] = [];
+    const valuePlaceholders = chunks.map((chunk, index) => {
+      const offset = params.length + 1;
+      params.push(
+        chunk.sourceFile,
+        chunk.chunkIndex,
+        chunk.content,
+        `[${embeddings[index]!.join(",")}]`,
+        JSON.stringify(chunk.metadata)
+      );
+      return `($${offset}, $${offset + 1}, $${offset + 2}, $${offset + 3}::vector, $${offset + 4})`;
+    });
+
+    await connection.query(
+      `INSERT INTO policy_chunks (source_file, chunk_index, content, embedding, metadata)
+       VALUES ${valuePlaceholders.join(", ")}
+       ON CONFLICT (source_file, chunk_index) DO UPDATE
+         SET content   = EXCLUDED.content,
+             embedding = EXCLUDED.embedding,
+             metadata  = EXCLUDED.metadata`,
+      params
+    );
+  });
 }
 
 export async function searchPoliciesByEmbedding(
@@ -49,10 +86,11 @@ export async function searchPoliciesByEmbedding(
 ): Promise<{ source_file: string; content: string; similarity: number }[]> {
   const vector = `[${embedding.join(",")}]`;
   return query(
-    `SELECT source_file, content,
-            1 - (embedding <=> $1::vector) AS similarity
-     FROM policy_chunks
-     ORDER BY embedding <=> $1::vector
+    `WITH q AS (SELECT $1::vector AS v)
+     SELECT source_file, content,
+            1 - (embedding <=> q.v) AS similarity
+     FROM policy_chunks, q
+     ORDER BY embedding <=> q.v
      LIMIT $2`,
     [vector, limit]
   );
