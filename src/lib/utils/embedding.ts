@@ -1,13 +1,13 @@
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const EMBEDDING_MODEL = "text-embedding-3-small";
+const EMBEDDING_MODEL = "text-embedding-004";
 const CHARS_PER_TOKEN = 4;
 const TARGET_TOKENS = 512;
 const OVERLAP_TOKENS = 64;
 const TARGET_CHARS = TARGET_TOKENS * CHARS_PER_TOKEN;
 const OVERLAP_CHARS = OVERLAP_TOKENS * CHARS_PER_TOKEN;
 
-const openai = new OpenAI();
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export interface PolicyChunk {
   sourceFile: string;
@@ -55,11 +55,11 @@ export function chunkPolicy(sourceFile: string, text: string): PolicyChunk[] {
 
 export async function embedTexts(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
-  const res = await openai.embeddings.create({
-    model: EMBEDDING_MODEL,
-    input: texts,
+  const model = genAI.getGenerativeModel({ model: EMBEDDING_MODEL });
+  const res = await model.batchEmbedContents({
+    requests: texts.map((text) => ({
+      content: { parts: [{ text }], role: "user" },
+    })),
   });
-  return res.data
-    .sort((a, b) => a.index - b.index)
-    .map((d) => d.embedding);
+  return res.embeddings.map((e) => e.values);
 }
