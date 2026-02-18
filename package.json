@@ -9,6 +9,7 @@
     "lint": "eslint",
     "dev:db": "docker compose up -d",
     "dev:migrate": "npx tsx --env-file=.env.local src/scripts/migrate.ts",
+    "dev:seed": "npx tsx --env-file=.env.local src/scripts/seed-policies.ts",
     "dev:full": "docker compose up -d --wait && npx tsx --env-file=.env.local src/scripts/migrate.ts && next dev"
   },
   "dependencies": {
@@ -17,6 +18,7 @@
     "dotenv": "^16.4.7",
     "ioredis": "^5.9.3",
     "next": "16.1.6",
+    "openai": "^6.22.0",
     "pg": "^8.18.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
