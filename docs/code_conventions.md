@@ -26,6 +26,7 @@
 - **SQL lives in query files** (`lib/db/queries/`), never inline in routers or handlers. Query functions accept an optional `PoolClient` param for transaction support
 - **Routers are thin** — validate input, call query functions, format output. No raw SQL
 - **`lib/` has no React imports** — shared between frontend and backend
+- **Descriptive variable and function names** prefer over long comments, and never abbreviate
 
 ## Formatting
 
