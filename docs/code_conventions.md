@@ -13,6 +13,10 @@
 | Files | kebab-case | `seed-policies.ts`, `circuit-breaker.ts` |
 | Event handlers | `handle` prefix | `handleSubmit`, `handleClick` |
 
+## Style
+
+- **Prefer `interface` over `type`** for object shapes (use `type` only for unions, intersections, and aliases)
+
 ## Patterns
 
 - **Early returns** for validation and edge cases
