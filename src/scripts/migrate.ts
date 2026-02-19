@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { pool } from "@/lib/db/pool";
+import { getPool } from "@/lib/db/pool";
 import {
   ensureMigrationsTable,
   getAppliedMigrations,
@@ -33,7 +33,7 @@ async function migrate() {
   }
 
   console.log("Migrations complete.");
-  await pool.end();
+  await getPool().end();
 }
 
 migrate().catch((err) => {
