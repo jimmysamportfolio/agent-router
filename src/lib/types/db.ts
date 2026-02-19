@@ -16,8 +16,8 @@ export interface ListingRow {
   title: string;
   description: string;
   category: string;
-  image_urls: string[];
-  metadata: Record<string, unknown>;
+  image_urls: string[] | null;
+  metadata: Record<string, unknown> | null;
   created_at: Date;
 }
 
@@ -28,7 +28,7 @@ export interface ReviewRow {
   verdict: Verdict | null;
   confidence: number | null;
   explanation: string | null;
-  trace: Record<string, unknown>;
+  trace: Record<string, unknown> | null;
   created_at: Date;
   updated_at: Date;
 }

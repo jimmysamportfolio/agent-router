@@ -23,7 +23,7 @@ export interface ReviewStatusOutput {
 
 export interface ScanReviewOutput extends ReviewStatusOutput {
   explanation: string | null;
-  trace: Record<string, unknown>;
+  trace: Record<string, unknown> | null;
 }
 
 export interface ScanListingOutput {

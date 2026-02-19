@@ -1,6 +1,7 @@
 import { query, queryOne } from "@/lib/db/pool";
 import type { ViolationRow } from "@/lib/types";
 import type { ScanResultOutput } from "@/lib/types";
+import { reviewStatusSchema, verdictSchema } from "@/lib/validation";
 
 interface ScanRow {
   review_id: string;
@@ -8,7 +9,7 @@ interface ScanRow {
   review_verdict: string | null;
   review_confidence: number | null;
   review_explanation: string | null;
-  review_trace: Record<string, unknown>;
+  review_trace: Record<string, unknown> | null;
   review_created_at: Date;
   review_updated_at: Date;
   listing_id: string;
@@ -44,8 +45,8 @@ export async function getScanByReviewId(
   return {
     review: {
       reviewId: row.review_id,
-      status: row.review_status as ScanResultOutput["review"]["status"],
-      verdict: row.review_verdict as ScanResultOutput["review"]["verdict"],
+      status: reviewStatusSchema.parse(row.review_status),
+      verdict: verdictSchema.nullable().parse(row.review_verdict),
       confidence: row.review_confidence,
       explanation: row.review_explanation,
       trace: row.review_trace,

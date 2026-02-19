@@ -7,7 +7,7 @@ export interface ReviewJobData {
   listingId: string;
 }
 
-let reviewQueue: Queue;
+let reviewQueue: Queue | undefined;
 
 function getReviewQueue(): Queue {
   if (reviewQueue) return reviewQueue;

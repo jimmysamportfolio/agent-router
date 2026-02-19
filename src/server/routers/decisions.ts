@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { router, publicProcedure } from "../trpc";
+import { router, publicProcedure } from "@/server/trpc";
 import { submitListingSchema, reviewIdSchema } from "@/lib/validation";
 import { executeInTransaction } from "@/lib/db/pool";
 import { insertListing } from "@/lib/db/queries/listings";
