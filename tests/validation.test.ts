@@ -48,8 +48,10 @@ describe("submitListingSchema", () => {
   });
 
   it("rejects missing category", () => {
-    const { category: _category, ...noCategory } = validInput;
-    const result = submitListingSchema.safeParse(noCategory);
+    const result = submitListingSchema.safeParse({
+      title: validInput.title,
+      description: validInput.description,
+    });
     expect(result.success).toBe(false);
   });
 
