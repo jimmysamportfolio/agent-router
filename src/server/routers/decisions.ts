@@ -18,7 +18,7 @@ export const decisionsRouter = router({
             imageUrls: input.imageUrls ?? [],
             metadata: input.metadata ?? {},
           },
-          client
+          client,
         );
         const newReview = await insertReview(newListing.id, client);
         return { listing: newListing, review: newReview };
@@ -32,20 +32,21 @@ export const decisionsRouter = router({
       return { reviewId: review.id };
     }),
 
-  getStatus: publicProcedure
-    .input(reviewIdSchema)
-    .query(async ({ input }) => {
-      const review = await getReviewById(input);
-      if (!review) {
-        throw new TRPCError({ code: "NOT_FOUND", message: `Review ${input} not found` });
-      }
-      return {
-        reviewId: review.id,
-        status: review.status,
-        verdict: review.verdict,
-        confidence: review.confidence,
-        createdAt: review.created_at,
-        updatedAt: review.updated_at,
-      };
-    }),
+  getStatus: publicProcedure.input(reviewIdSchema).query(async ({ input }) => {
+    const review = await getReviewById(input);
+    if (!review) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: `Review ${input} not found`,
+      });
+    }
+    return {
+      reviewId: review.id,
+      status: review.status,
+      verdict: review.verdict,
+      confidence: review.confidence,
+      createdAt: review.created_at,
+      updatedAt: review.updated_at,
+    };
+  }),
 });

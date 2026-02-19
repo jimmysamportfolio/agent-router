@@ -10,19 +10,19 @@ export interface ReviewJobData {
 let reviewQueue: Queue;
 
 function getReviewQueue(): Queue {
-  if (!reviewQueue) {
-    if (!process.env.REDIS_URL) {
-      throw new Error("REDIS_URL is required");
-    }
-    const connection: ConnectionOptions = { url: process.env.REDIS_URL };
-    reviewQueue = new Queue(REVIEW_QUEUE_NAME, {
-      connection,
-      defaultJobOptions: {
-        removeOnComplete: 100,
-        removeOnFail: 500,
-      },
-    });
-  }
+  if (reviewQueue) return reviewQueue;
+
+  if (!process.env.REDIS_URL) throw new Error("REDIS_URL is required");
+  
+  const connection: ConnectionOptions = { url: process.env.REDIS_URL };
+  reviewQueue = new Queue(REVIEW_QUEUE_NAME, {
+    connection,
+    defaultJobOptions: {
+      removeOnComplete: 100,
+      removeOnFail: 500,
+    },
+  });
+
   return reviewQueue;
 }
 
