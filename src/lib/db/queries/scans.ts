@@ -1,7 +1,7 @@
 import { query, queryOne } from "@/lib/db/pool";
 import type { ViolationRow } from "@/lib/types";
 import type { ScanResultOutput } from "@/lib/types";
-import { reviewStatusSchema, verdictSchema } from "@/lib/validation";
+import { reviewStatusSchema, verdictSchema, severitySchema } from "@/lib/validation";
 
 interface ScanRow {
   review_id: string;
@@ -63,7 +63,7 @@ export async function getScanByReviewId(
     violations: violations.map((v) => ({
       id: v.id,
       policySection: v.policy_section,
-      severity: v.severity,
+      severity: severitySchema.parse(v.severity),
       description: v.description,
     })),
   };

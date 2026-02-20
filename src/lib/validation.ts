@@ -12,6 +12,8 @@ export const reviewStatusSchema = z.enum([
 
 export const verdictSchema = z.enum(["approved", "rejected", "escalated"]);
 
+export const severitySchema = z.enum(["low", "medium", "high", "critical"]);
+
 export const submitListingSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().min(1).max(5000),
