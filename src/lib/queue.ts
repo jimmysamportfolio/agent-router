@@ -27,6 +27,8 @@ function getReviewQueue(): Queue {
 }
 
 export async function enqueueReview(data: ReviewJobData): Promise<string> {
-  const job = await getReviewQueue().add("process-review", data);
+  const job = await getReviewQueue().add("process-review", data, {
+    jobId: data.reviewId,
+  });
   return job.id ?? data.reviewId;
 }

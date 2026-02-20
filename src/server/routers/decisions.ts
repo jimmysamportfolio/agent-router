@@ -32,7 +32,7 @@ export const decisionsRouter = router({
       return { reviewId: review.id };
     }),
 
-  getStatus: publicProcedure.input(reviewIdSchema).query(async ({ input }) => {
+  getStatus: publicProcedure.input(reviewIdSchema).query(async ({ input, ctx }) => {
     const review = await getReviewById(input);
     if (!review) {
       throw new TRPCError({
@@ -40,6 +40,16 @@ export const decisionsRouter = router({
         message: `Review ${input} not found`,
       });
     }
+
+    const STALE_THRESHOLD_MS = 2 * 60 * 1000;
+    const isStuck =
+      review.status === "pending" &&
+      Date.now() - review.created_at.getTime() > STALE_THRESHOLD_MS;
+
+    if (isStuck) {
+      await ctx.enqueueReview({ reviewId: review.id, listingId: review.listing_id });
+    }
+
     return {
       reviewId: review.id,
       status: review.status,
