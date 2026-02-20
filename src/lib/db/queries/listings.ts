@@ -1,5 +1,6 @@
 import type { PoolClient } from "pg";
 import { queryOne } from "@/lib/db/pool";
+import { DatabaseError } from "@/lib/errors";
 import type { ListingRow } from "@/lib/types";
 
 export interface InsertListingInput {
@@ -29,11 +30,11 @@ export async function insertListing(
 
   if (client) {
     const { rows } = await client.query<ListingRow>(INSERT_LISTING_SQL, params);
-    if (!rows[0]) throw new Error("Failed to insert listing");
+    if (!rows[0]) throw new DatabaseError("Failed to insert listing");
     return rows[0];
   }
 
   const row = await queryOne<ListingRow>(INSERT_LISTING_SQL, params);
-  if (!row) throw new Error("Failed to insert listing");
+  if (!row) throw new DatabaseError("Failed to insert listing");
   return row;
 }

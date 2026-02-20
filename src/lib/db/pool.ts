@@ -1,4 +1,5 @@
 import { Pool, PoolClient, QueryResultRow } from "pg";
+import { ConfigError } from "@/lib/errors";
 
 let pool: Pool | undefined;
 
@@ -6,7 +7,7 @@ function getPool(): Pool {
   if (pool) return pool;
 
   if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL is required");
+    throw new ConfigError("DATABASE_URL");
   }
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,

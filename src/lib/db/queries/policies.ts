@@ -1,4 +1,5 @@
 import { query, executeInTransaction } from "@/lib/db/pool";
+import { ValidationError } from "@/lib/errors";
 import type { PolicyChunk } from "@/lib/utils/embedding";
 
 export async function upsertPolicyChunks(
@@ -33,7 +34,7 @@ export async function replaceAllPolicyChunks(
   for (const chunk of chunks) {
     const key = `${chunk.sourceFile}\0${chunk.chunkIndex}`;
     if (seen.has(key)) {
-      throw new Error(
+      throw new ValidationError(
         `Duplicate (source_file, chunk_index) in input: ("${chunk.sourceFile}", ${chunk.chunkIndex})`,
       );
     }
@@ -55,7 +56,7 @@ export async function searchPoliciesByEmbedding(
   limit = 5,
 ): Promise<{ source_file: string; content: string; similarity: number }[]> {
   if (!Array.isArray(embedding) || embedding.length === 0) {
-    throw new Error("embedding must be a non-empty array");
+    throw new ValidationError("embedding must be a non-empty array");
   }
 
   const vector = `[${embedding.join(",")}]`;
@@ -77,7 +78,7 @@ function validateChunksAndEmbeddings(
   embeddings: number[][],
 ): void {
   if (chunks.length !== embeddings.length) {
-    throw new Error(
+    throw new ValidationError(
       `chunks/embeddings length mismatch: ${chunks.length} chunks vs ${embeddings.length} embeddings`,
     );
   }
