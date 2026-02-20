@@ -98,6 +98,7 @@ agentr/
 │       │   │   └── webhooks.ts          # insertWebhook, getActiveWebhooks
 │       │   └── migrations/
 │       │       └── *.sql                # numbered SQL migration files
+│       ├── errors.ts                    # AppError base, ConfigError, ValidationError, DatabaseError, InvariantError
 │       ├── types/
 │       │   ├── db.ts                    # Row types: ListingRow, ReviewRow, PolicyRow, etc.
 │       │   ├── api.ts                   # Request/response shapes
