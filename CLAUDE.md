@@ -27,8 +27,6 @@ npx tsc --noEmit      # Type check
 | Doc | Read when... |
 |-----|-------------|
 | `docs/service_architecture.md` | System design, request flow, env vars, tech stack |
-| `docs/database_schema.md` | Writing queries, migrations, table schemas |
 | `docs/code_conventions.md` | Naming conventions, code patterns |
-| `docs/error_handling.md` | Error handling, pipeline resilience |
-| `docs/testing.md` | Writing or running tests |
 | `docs/folder_structure.md` | Creating files, where things belong |
+
