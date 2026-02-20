@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { pool } from "@/lib/db/pool";
+import { getPool } from "@/lib/db/pool";
 import { chunkPolicy, embedTexts } from "@/lib/utils/embedding";
 import { replaceAllPolicyChunks } from "@/lib/db/queries/policies";
 
@@ -31,7 +31,7 @@ async function seed() {
   await replaceAllPolicyChunks(allChunks, embeddings);
 
   console.log(`Seeded ${allChunks.length} policy chunks.`);
-  await pool.end();
+  await getPool().end();
 }
 
 seed().catch((err) => {
