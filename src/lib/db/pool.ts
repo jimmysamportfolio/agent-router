@@ -3,25 +3,31 @@ import { Pool, PoolClient, QueryResultRow } from "pg";
 let pool: Pool;
 
 function getPool(): Pool {
-  if (!pool) {
-    if (!process.env.DATABASE_URL) {
-      throw new Error("DATABASE_URL is required");
-    }
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      max: parseInt(process.env.DB_POOL_MAX ?? "10", 10),
-      connectionTimeoutMillis: parseInt(
-        process.env.DB_CONN_TIMEOUT_MS ?? "5000",
-        10
-      ),
-      idleTimeoutMillis: parseInt(
-        process.env.DB_IDLE_TIMEOUT_MS ?? "30000",
-        10
-      ),
-    });
+  if (pool) return pool;
+
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL is required");
   }
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    max: parseInt(process.env.DB_POOL_MAX ?? "10", 10),
+    connectionTimeoutMillis: parseInt(
+      process.env.DB_CONN_TIMEOUT_MS ?? "5000",
+      10
+    ),
+    idleTimeoutMillis: parseInt(
+      process.env.DB_IDLE_TIMEOUT_MS ?? "30000",
+      10
+    ),
+  });
+
+  pool.on("error", (err) => {
+    console.error("[DB Pool] idle client error:", err);
+  });
+
   return pool;
 }
+
 
 export async function query<T extends QueryResultRow>(
   sql: string,
