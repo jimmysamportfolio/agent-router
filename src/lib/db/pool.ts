@@ -1,6 +1,6 @@
 import { Pool, PoolClient, QueryResultRow } from "pg";
 
-let pool: Pool;
+let pool: Pool | undefined;
 
 function getPool(): Pool {
   if (pool) return pool;
