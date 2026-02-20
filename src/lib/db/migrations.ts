@@ -11,17 +11,16 @@ export async function ensureMigrationsTable(): Promise<void> {
 
 export async function getAppliedMigrations(): Promise<Set<string>> {
   const rows = await query<{ name: string }>(
-    "SELECT name FROM _migrations ORDER BY name"
+    "SELECT name FROM _migrations ORDER BY name",
   );
   return new Set(rows.map((row) => row.name));
 }
 
-export async function applyMigration(
-  name: string,
-  sql: string
-): Promise<void> {
+export async function applyMigration(name: string, sql: string): Promise<void> {
   await executeInTransaction(async (connection) => {
     await connection.query(sql);
-    await connection.query("INSERT INTO _migrations (name) VALUES ($1)", [name]);
+    await connection.query("INSERT INTO _migrations (name) VALUES ($1)", [
+      name,
+    ]);
   });
 }

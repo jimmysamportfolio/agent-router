@@ -14,9 +14,9 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
-    "noUncheckedIndexedAccess": true,      
-    "noImplicitReturns": true,             
-    "exactOptionalPropertyTypes": true,    
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "exactOptionalPropertyTypes": true,
     "plugins": [
       {
         "name": "next"

@@ -48,7 +48,7 @@ export function chunkPolicy(sourceFile: string, text: string): PolicyChunk[] {
     });
 
     // add at least 1 since slice.length - OVERLAP_CHARS might be 0 to avoid infinite loop
-    start += Math.max(1, slice.length - OVERLAP_CHARS); 
+    start += Math.max(1, slice.length - OVERLAP_CHARS);
     chunkIndex++;
   }
 
@@ -69,7 +69,7 @@ export async function embedTexts(texts: string[]): Promise<number[][]> {
           config: { outputDimensionality: EMBEDDING_DIMENSIONS },
         });
         return res.embeddings![0]!.values!;
-      })
+      }),
     );
     results.push(...embeddings);
   }

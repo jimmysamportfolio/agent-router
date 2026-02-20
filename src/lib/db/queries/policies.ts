@@ -3,7 +3,7 @@ import type { PolicyChunk } from "@/lib/utils/embedding";
 
 export async function upsertPolicyChunks(
   chunks: PolicyChunk[],
-  embeddings: number[][]
+  embeddings: number[][],
 ): Promise<void> {
   validateChunksAndEmbeddings(chunks, embeddings);
 
@@ -17,7 +17,7 @@ export async function upsertPolicyChunks(
          SET content   = EXCLUDED.content,
              embedding = EXCLUDED.embedding,
              metadata  = EXCLUDED.metadata`,
-      params
+      params,
     );
   });
 }
@@ -25,7 +25,7 @@ export async function upsertPolicyChunks(
 /** Atomically deletes all existing chunks and inserts the new ones. */
 export async function replaceAllPolicyChunks(
   chunks: PolicyChunk[],
-  embeddings: number[][]
+  embeddings: number[][],
 ): Promise<void> {
   validateChunksAndEmbeddings(chunks, embeddings);
 
@@ -34,7 +34,7 @@ export async function replaceAllPolicyChunks(
     const key = `${chunk.sourceFile}\0${chunk.chunkIndex}`;
     if (seen.has(key)) {
       throw new Error(
-        `Duplicate (source_file, chunk_index) in input: ("${chunk.sourceFile}", ${chunk.chunkIndex})`
+        `Duplicate (source_file, chunk_index) in input: ("${chunk.sourceFile}", ${chunk.chunkIndex})`,
       );
     }
     seen.add(key);
@@ -52,7 +52,7 @@ export async function replaceAllPolicyChunks(
 
 export async function searchPoliciesByEmbedding(
   embedding: number[],
-  limit = 5
+  limit = 5,
 ): Promise<{ source_file: string; content: string; similarity: number }[]> {
   if (!Array.isArray(embedding) || embedding.length === 0) {
     throw new Error("embedding must be a non-empty array");
@@ -66,27 +66,26 @@ export async function searchPoliciesByEmbedding(
      FROM policy_chunks, q
      ORDER BY embedding <=> q.v
      LIMIT $2`,
-    [vector, limit]
+    [vector, limit],
   );
 }
-
 
 // helpers
 
 function validateChunksAndEmbeddings(
   chunks: PolicyChunk[],
-  embeddings: number[][]
+  embeddings: number[][],
 ): void {
   if (chunks.length !== embeddings.length) {
     throw new Error(
-      `chunks/embeddings length mismatch: ${chunks.length} chunks vs ${embeddings.length} embeddings`
+      `chunks/embeddings length mismatch: ${chunks.length} chunks vs ${embeddings.length} embeddings`,
     );
   }
 }
 
 function buildPolicyChunksInsert(
   chunks: PolicyChunk[],
-  embeddings: number[][]
+  embeddings: number[][],
 ): { sql: string; params: unknown[] } {
   const params: unknown[] = [];
   const valuePlaceholders = chunks.map((chunk, index) => {
@@ -96,7 +95,7 @@ function buildPolicyChunksInsert(
       chunk.chunkIndex,
       chunk.content,
       `[${embeddings[index]!.join(",")}]`,
-      JSON.stringify(chunk.metadata)
+      JSON.stringify(chunk.metadata),
     );
     return `($${offset}, $${offset + 1}, $${offset + 2}, $${offset + 3}::vector, $${offset + 4})`;
   });

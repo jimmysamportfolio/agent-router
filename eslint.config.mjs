@@ -2,15 +2,17 @@ import eslintConfigPrettier from "eslint-config-prettier";
 import tseslint from "typescript-eslint";
 
 const eslintConfig = [
-  eslintConfigPrettier,
   {
-    files: ["**/*.ts", "**/*.tsx"],
     ignores: [
       "**/.next/**",
       "**/node_modules/**",
       "**/dist/**",
       "**/build/**",
     ],
+  },
+  eslintConfigPrettier,
+  {
+    files: ["**/*.ts", "**/*.tsx"],
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {

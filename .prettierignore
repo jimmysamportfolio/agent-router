@@ -1,0 +1,15 @@
+# Markdown files
+*.md
+
+# Build outputs
+.next/
+dist/
+build/
+
+# Dependencies
+node_modules/
+
+# Lock files
+package-lock.json
+pnpm-lock.yaml
+yarn.lock

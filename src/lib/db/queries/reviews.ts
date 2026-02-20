@@ -6,10 +6,12 @@ const INSERT_REVIEW_SQL = `INSERT INTO reviews (listing_id) VALUES ($1) RETURNIN
 
 export async function insertReview(
   listingId: string,
-  client?: PoolClient
+  client?: PoolClient,
 ): Promise<ReviewRow> {
   if (client) {
-    const { rows } = await client.query<ReviewRow>(INSERT_REVIEW_SQL, [listingId]);
+    const { rows } = await client.query<ReviewRow>(INSERT_REVIEW_SQL, [
+      listingId,
+    ]);
     if (!rows[0]) throw new Error("Failed to insert review");
     return rows[0];
   }
@@ -20,7 +22,7 @@ export async function insertReview(
 }
 
 export async function getReviewById(
-  reviewId: string
+  reviewId: string,
 ): Promise<ReviewRow | undefined> {
   return queryOne<ReviewRow>(`SELECT * FROM reviews WHERE id = $1`, [reviewId]);
 }
