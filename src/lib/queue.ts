@@ -27,8 +27,7 @@ function getReviewQueue(): Queue {
 }
 
 export async function enqueueReview(data: ReviewJobData): Promise<string> {
-  const job = await getReviewQueue().add("process-review", data, {
-    jobId: data.reviewId,
-  });
-  return job.id ?? data.reviewId;
+  const job = await getReviewQueue().add("process-review", data);
+  if (!job.id) throw new Error("BullMQ did not assign a job ID");
+  return job.id;
 }
