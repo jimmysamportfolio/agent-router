@@ -22,7 +22,7 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
           url: getUrl(),
         }),
       ],
-    })
+    }),
   );
 
   return (

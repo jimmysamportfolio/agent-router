@@ -1,7 +1,11 @@
 import { query, queryOne } from "@/lib/db/pool";
 import type { ViolationRow } from "@/lib/types";
 import type { ScanResultOutput } from "@/lib/types";
-import { reviewStatusSchema, verdictSchema, severitySchema } from "@/lib/validation";
+import {
+  reviewStatusSchema,
+  verdictSchema,
+  severitySchema,
+} from "@/lib/validation";
 
 interface ScanRow {
   review_id: string;
@@ -35,12 +39,14 @@ const VIOLATIONS_QUERY_SQL = `
   FROM violations WHERE review_id = $1`;
 
 export async function getScanByReviewId(
-  reviewId: string
+  reviewId: string,
 ): Promise<ScanResultOutput | undefined> {
   const row = await queryOne<ScanRow>(SCAN_QUERY_SQL, [reviewId]);
   if (!row) return undefined;
 
-  const violations = await query<ViolationRow>(VIOLATIONS_QUERY_SQL, [reviewId]);
+  const violations = await query<ViolationRow>(VIOLATIONS_QUERY_SQL, [
+    reviewId,
+  ]);
 
   return {
     review: {

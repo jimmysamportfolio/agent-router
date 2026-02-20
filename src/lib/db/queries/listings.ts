@@ -17,9 +17,15 @@ const INSERT_LISTING_SQL = `
 
 export async function insertListing(
   input: InsertListingInput,
-  client?: PoolClient
+  client?: PoolClient,
 ): Promise<ListingRow> {
-  const params = [input.title, input.description, input.category, input.imageUrls, input.metadata];
+  const params = [
+    input.title,
+    input.description,
+    input.category,
+    input.imageUrls,
+    input.metadata,
+  ];
 
   if (client) {
     const { rows } = await client.query<ListingRow>(INSERT_LISTING_SQL, params);

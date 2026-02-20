@@ -35,7 +35,10 @@ describe("submitListingSchema", () => {
   });
 
   it("rejects empty description", () => {
-    const result = submitListingSchema.safeParse({ ...validInput, description: "" });
+    const result = submitListingSchema.safeParse({
+      ...validInput,
+      description: "",
+    });
     expect(result.success).toBe(false);
   });
 
@@ -74,7 +77,9 @@ describe("submitListingSchema", () => {
 
 describe("reviewIdSchema", () => {
   it("accepts a valid UUID", () => {
-    const result = reviewIdSchema.safeParse("550e8400-e29b-41d4-a716-446655440000");
+    const result = reviewIdSchema.safeParse(
+      "550e8400-e29b-41d4-a716-446655440000",
+    );
     expect(result.success).toBe(true);
   });
 

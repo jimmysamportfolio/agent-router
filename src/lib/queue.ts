@@ -13,7 +13,7 @@ function getReviewQueue(): Queue {
   if (reviewQueue) return reviewQueue;
 
   if (!process.env.REDIS_URL) throw new Error("REDIS_URL is required");
-  
+
   const connection: ConnectionOptions = { url: process.env.REDIS_URL };
   reviewQueue = new Queue(REVIEW_QUEUE_NAME, {
     connection,
