@@ -1,5 +1,6 @@
 import type { PoolClient } from "pg";
 import { queryOne } from "@/lib/db/pool";
+import { DatabaseError } from "@/lib/errors";
 import type { ReviewRow } from "@/lib/types";
 
 const INSERT_REVIEW_SQL = `INSERT INTO reviews (listing_id) VALUES ($1) RETURNING *`;
@@ -12,12 +13,12 @@ export async function insertReview(
     const { rows } = await client.query<ReviewRow>(INSERT_REVIEW_SQL, [
       listingId,
     ]);
-    if (!rows[0]) throw new Error("Failed to insert review");
+    if (!rows[0]) throw new DatabaseError("Failed to insert review");
     return rows[0];
   }
 
   const row = await queryOne<ReviewRow>(INSERT_REVIEW_SQL, [listingId]);
-  if (!row) throw new Error("Failed to insert review");
+  if (!row) throw new DatabaseError("Failed to insert review");
   return row;
 }
 

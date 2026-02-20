@@ -1,4 +1,5 @@
 import { Queue, type ConnectionOptions } from "bullmq";
+import { ConfigError, InvariantError } from "@/lib/errors";
 
 export const REVIEW_QUEUE_NAME = "review-pipeline";
 
@@ -12,7 +13,7 @@ let reviewQueue: Queue | undefined;
 function getReviewQueue(): Queue {
   if (reviewQueue) return reviewQueue;
 
-  if (!process.env.REDIS_URL) throw new Error("REDIS_URL is required");
+  if (!process.env.REDIS_URL) throw new ConfigError("REDIS_URL");
 
   const connection: ConnectionOptions = { url: process.env.REDIS_URL };
   reviewQueue = new Queue(REVIEW_QUEUE_NAME, {
@@ -28,6 +29,6 @@ function getReviewQueue(): Queue {
 
 export async function enqueueReview(data: ReviewJobData): Promise<string> {
   const job = await getReviewQueue().add("process-review", data);
-  if (!job.id) throw new Error("BullMQ did not assign a job ID");
+  if (!job.id) throw new InvariantError("BullMQ did not assign a job ID");
   return job.id;
 }
