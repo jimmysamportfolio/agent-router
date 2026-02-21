@@ -15,8 +15,12 @@ let client: Anthropic | undefined;
 
 function getClient(): Anthropic {
   if (client) return client;
-  if (!process.env.ANTHROPIC_API_KEY) throw new ConfigError("ANTHROPIC_API_KEY");
-  client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: TIMEOUT_MS });
+  if (!process.env.ANTHROPIC_API_KEY)
+    throw new ConfigError("ANTHROPIC_API_KEY");
+  client = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+    timeout: TIMEOUT_MS,
+  });
   return client;
 }
 
@@ -105,9 +109,8 @@ export async function callClaudeStructured<T>(
  * Written for Zod v4 where internals use `_zod.def` instead of `_def`.
  */
 function zodToJsonSchema(schema: ZodType<unknown>): Record<string, unknown> {
-  const def = (schema as unknown as { _zod?: { def: Record<string, unknown> } })._zod?.def as
-    | Record<string, unknown>
-    | undefined;
+  const def = (schema as unknown as { _zod?: { def: Record<string, unknown> } })
+    ._zod?.def as Record<string, unknown> | undefined;
   if (!def) {
     // Fallback: return permissive schema
     return { type: "object" };
@@ -166,8 +169,9 @@ function zodToJsonSchema(schema: ZodType<unknown>): Record<string, unknown> {
       if (!options) return {};
       // Check if all options are literals (enum-like union)
       const allLiterals = options.every((opt) => {
-        const optDef = (opt as unknown as { _zod?: { def: Record<string, unknown> } })._zod
-          ?.def as Record<string, unknown> | undefined;
+        const optDef = (
+          opt as unknown as { _zod?: { def: Record<string, unknown> } }
+        )._zod?.def as Record<string, unknown> | undefined;
         const optType =
           (optDef?.typeName as string | undefined) ??
           (optDef?.type as string | undefined);
@@ -175,8 +179,9 @@ function zodToJsonSchema(schema: ZodType<unknown>): Record<string, unknown> {
       });
       if (allLiterals) {
         const values = options.map((opt) => {
-          const optDef = (opt as unknown as { _zod?: { def: Record<string, unknown> } })._zod
-            ?.def as Record<string, unknown> | undefined;
+          const optDef = (
+            opt as unknown as { _zod?: { def: Record<string, unknown> } }
+          )._zod?.def as Record<string, unknown> | undefined;
           return optDef?.value;
         });
         return { type: "string", enum: values };

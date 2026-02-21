@@ -6,5 +6,7 @@ export interface QueueWorkerHandle {
 
 export interface QueueProvider {
   enqueue(data: ReviewJobData): Promise<string>;
-  createWorker(handler: (data: ReviewJobData) => Promise<void>): QueueWorkerHandle;
+  createWorker(
+    handler: (data: ReviewJobData) => Promise<void>,
+  ): QueueWorkerHandle;
 }

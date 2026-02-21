@@ -37,11 +37,17 @@ describe("CircuitBreaker", () => {
     const cb = new CircuitBreaker({ windowSize: 2, failureThreshold: 0.4 });
 
     // Force open
-    try { await cb.execute(() => Promise.reject(new Error("fail"))); } catch {}
-    try { await cb.execute(() => Promise.reject(new Error("fail"))); } catch {}
+    try {
+      await cb.execute(() => Promise.reject(new Error("fail")));
+    } catch {}
+    try {
+      await cb.execute(() => Promise.reject(new Error("fail")));
+    } catch {}
 
     expect(cb.getState()).toBe("open");
-    await expect(cb.execute(() => Promise.resolve("ok"))).rejects.toThrow("Circuit breaker is open");
+    await expect(cb.execute(() => Promise.resolve("ok"))).rejects.toThrow(
+      "Circuit breaker is open",
+    );
   });
 
   it("transitions to half_open after recovery timeout", async () => {
@@ -54,8 +60,12 @@ describe("CircuitBreaker", () => {
     });
 
     // Force open
-    try { await cb.execute(() => Promise.reject(new Error("fail"))); } catch {}
-    try { await cb.execute(() => Promise.reject(new Error("fail"))); } catch {}
+    try {
+      await cb.execute(() => Promise.reject(new Error("fail")));
+    } catch {}
+    try {
+      await cb.execute(() => Promise.reject(new Error("fail")));
+    } catch {}
     expect(cb.getState()).toBe("open");
 
     // Advance time past recovery timeout
@@ -78,8 +88,12 @@ describe("CircuitBreaker", () => {
     });
 
     // Force open
-    try { await cb.execute(() => Promise.reject(new Error("fail"))); } catch {}
-    try { await cb.execute(() => Promise.reject(new Error("fail"))); } catch {}
+    try {
+      await cb.execute(() => Promise.reject(new Error("fail")));
+    } catch {}
+    try {
+      await cb.execute(() => Promise.reject(new Error("fail")));
+    } catch {}
     expect(cb.getState()).toBe("open");
 
     vi.advanceTimersByTime(1001);

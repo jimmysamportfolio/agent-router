@@ -1,4 +1,8 @@
-import { getReviewById, updateReviewStatus, updateReviewVerdict } from "@/lib/db/queries/reviews";
+import {
+  getReviewById,
+  updateReviewStatus,
+  updateReviewVerdict,
+} from "@/lib/db/queries/reviews";
 import { getListingById } from "@/lib/db/queries/listings";
 import { insertViolations } from "@/lib/db/queries/violations";
 import { executeInTransaction } from "@/lib/db/pool";
@@ -12,8 +16,17 @@ import { aggregateResults } from "@/server/pipeline/aggregator";
 import { explainDecision } from "@/server/pipeline/explainer";
 import type { AgentInput, NodeTrace } from "@/server/pipeline/types";
 
-function traceNode(nodeName: string, startedAt: string, startMs: number, error?: string): NodeTrace {
-  const trace: NodeTrace = { nodeName, startedAt, durationMs: Date.now() - startMs };
+function traceNode(
+  nodeName: string,
+  startedAt: string,
+  startMs: number,
+  error?: string,
+): NodeTrace {
+  const trace: NodeTrace = {
+    nodeName,
+    startedAt,
+    durationMs: Date.now() - startMs,
+  };
   if (error !== undefined) {
     trace.error = error;
   }
@@ -32,7 +45,8 @@ export async function processReview(reviewId: string): Promise<void> {
     if (!review) throw new DatabaseError(`Review not found: ${reviewId}`);
 
     const listing = await getListingById(review.listing_id);
-    if (!listing) throw new DatabaseError(`Listing not found: ${review.listing_id}`);
+    if (!listing)
+      throw new DatabaseError(`Listing not found: ${review.listing_id}`);
 
     traces.push(traceNode("fetch", startedAt, start));
 
@@ -93,10 +107,15 @@ export async function processReview(reviewId: string): Promise<void> {
     traces.push(traceNode("persist", startedAt, start));
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    traces.push(traceNode("error", new Date().toISOString(), Date.now(), errorMessage));
+    traces.push(
+      traceNode("error", new Date().toISOString(), Date.now(), errorMessage),
+    );
 
     try {
-      await updateReviewStatus(reviewId, "failed", { traces, error: errorMessage });
+      await updateReviewStatus(reviewId, "failed", {
+        traces,
+        error: errorMessage,
+      });
     } catch {
       console.error(`Failed to update review ${reviewId} to failed status`);
     }

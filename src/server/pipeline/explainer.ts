@@ -1,6 +1,9 @@
 import { callClaude } from "@/server/pipeline/llm";
 import type { ListingRow } from "@/lib/types";
-import type { AggregatedDecision, SubAgentResult } from "@/server/pipeline/types";
+import type {
+  AggregatedDecision,
+  SubAgentResult,
+} from "@/server/pipeline/types";
 
 const SYSTEM_PROMPT = `You are a marketplace policy compliance explainer. Given a review decision, the listing details, and the reasoning from individual review agents, write a concise 2-3 sentence explanation of why the listing was approved, rejected, or escalated. Be specific about which policies were relevant. Write for a human reviewer who needs to quickly understand the decision.`;
 

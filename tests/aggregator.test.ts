@@ -31,7 +31,13 @@ describe("aggregateResults", () => {
         agentName: "b",
         verdict: "rejected",
         confidence: 0.85,
-        violations: [{ policySection: "1.1", severity: "high", description: "Weapon detected" }],
+        violations: [
+          {
+            policySection: "1.1",
+            severity: "high",
+            description: "Weapon detected",
+          },
+        ],
       }),
     ];
     const decision = aggregateResults(results);
@@ -68,13 +74,25 @@ describe("aggregateResults", () => {
         agentName: "a",
         verdict: "rejected",
         confidence: 0.9,
-        violations: [{ policySection: "1.1", severity: "medium", description: "Low concern" }],
+        violations: [
+          {
+            policySection: "1.1",
+            severity: "medium",
+            description: "Low concern",
+          },
+        ],
       }),
       makeResult({
         agentName: "b",
         verdict: "rejected",
         confidence: 0.85,
-        violations: [{ policySection: "1.1", severity: "critical", description: "Major concern" }],
+        violations: [
+          {
+            policySection: "1.1",
+            severity: "critical",
+            description: "Major concern",
+          },
+        ],
       }),
     ];
     const decision = aggregateResults(results);

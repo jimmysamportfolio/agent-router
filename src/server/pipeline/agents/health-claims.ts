@@ -31,7 +31,8 @@ Return your analysis as a structured result with verdict, confidence (0-1), any 
 - "approved" if no problematic health claims detected`;
 
 function buildPolicyContext(input: AgentInput): string {
-  if (input.relevantPolicies.length === 0) return "No specific policies loaded.";
+  if (input.relevantPolicies.length === 0)
+    return "No specific policies loaded.";
   return input.relevantPolicies
     .map((p) => `[${p.sourceFile}] ${p.content}`)
     .join("\n\n");

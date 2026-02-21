@@ -2,7 +2,10 @@ import { Queue, Worker } from "bullmq";
 import type { ConnectionOptions } from "bullmq";
 import { REVIEW_QUEUE_NAME, type ReviewJobData } from "@/lib/queue";
 import { ConfigError, InvariantError } from "@/lib/errors";
-import type { QueueProvider, QueueWorkerHandle } from "@/server/pipeline/queue/interface";
+import type {
+  QueueProvider,
+  QueueWorkerHandle,
+} from "@/server/pipeline/queue/interface";
 
 export class BullMQProvider implements QueueProvider {
   private readonly connection: ConnectionOptions;
@@ -31,7 +34,9 @@ export class BullMQProvider implements QueueProvider {
     return job.id;
   }
 
-  createWorker(handler: (data: ReviewJobData) => Promise<void>): QueueWorkerHandle {
+  createWorker(
+    handler: (data: ReviewJobData) => Promise<void>,
+  ): QueueWorkerHandle {
     const worker = new Worker<ReviewJobData>(
       REVIEW_QUEUE_NAME,
       async (job) => handler(job.data),

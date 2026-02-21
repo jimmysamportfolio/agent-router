@@ -17,9 +17,11 @@ export class CircuitBreaker {
     windowSize?: number;
     recoveryTimeoutMs?: number;
   }) {
-    this.failureThreshold = options?.failureThreshold ?? DEFAULT_FAILURE_THRESHOLD;
+    this.failureThreshold =
+      options?.failureThreshold ?? DEFAULT_FAILURE_THRESHOLD;
     this.windowSize = options?.windowSize ?? DEFAULT_WINDOW_SIZE;
-    this.recoveryTimeoutMs = options?.recoveryTimeoutMs ?? DEFAULT_RECOVERY_TIMEOUT_MS;
+    this.recoveryTimeoutMs =
+      options?.recoveryTimeoutMs ?? DEFAULT_RECOVERY_TIMEOUT_MS;
   }
 
   async execute<T>(fn: () => Promise<T>): Promise<T> {

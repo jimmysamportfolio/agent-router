@@ -1,8 +1,6 @@
 import type { AgentInput, SubAgentResult } from "@/server/pipeline/types";
 
-export async function checkImages(
-  input: AgentInput,
-): Promise<SubAgentResult> {
+export async function checkImages(input: AgentInput): Promise<SubAgentResult> {
   const hasImages =
     input.listing.image_urls !== null && input.listing.image_urls.length > 0;
 

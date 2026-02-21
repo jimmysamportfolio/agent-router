@@ -8,7 +8,9 @@ if (!process.env.REDIS_URL) throw new ConfigError("REDIS_URL");
 const connection = { url: process.env.REDIS_URL };
 
 async function handleJob(job: Job<ReviewJobData>): Promise<void> {
-  console.log(`[Worker] Processing job ${job.id} — review ${job.data.reviewId}`);
+  console.log(
+    `[Worker] Processing job ${job.id} — review ${job.data.reviewId}`,
+  );
   await processReview(job.data.reviewId);
   console.log(`[Worker] Completed job ${job.id} — review ${job.data.reviewId}`);
 }

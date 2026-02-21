@@ -16,7 +16,10 @@ export function aggregateResults(
   for (const result of results) {
     for (const v of result.violations) {
       const existing = violationMap.get(v.policySection);
-      if (!existing || severityRank(v.severity) > severityRank(existing.severity)) {
+      if (
+        !existing ||
+        severityRank(v.severity) > severityRank(existing.severity)
+      ) {
         violationMap.set(v.policySection, v);
       }
     }
