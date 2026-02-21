@@ -1,11 +1,15 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { ZodType } from "zod";
 import { ConfigError } from "@/lib/errors";
+import { CircuitBreaker } from "@/server/pipeline/guardrails/circuit-breaker";
+import { redactPII } from "@/server/pipeline/guardrails/redactor";
 
 const MODEL = "claude-sonnet-4-5-20250929";
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
 const TIMEOUT_MS = 60_000;
+
+const circuitBreaker = new CircuitBreaker();
 
 let client: Anthropic | undefined;
 
@@ -37,13 +41,17 @@ export async function callClaude(
   userPrompt: string,
   options?: { maxTokens?: number },
 ): Promise<string> {
-  const response = await withRetry(() =>
-    getClient().messages.create({
-      model: MODEL,
-      max_tokens: options?.maxTokens ?? 1024,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
-    }),
+  const redactedUser = redactPII(userPrompt);
+
+  const response = await circuitBreaker.execute(() =>
+    withRetry(() =>
+      getClient().messages.create({
+        model: MODEL,
+        max_tokens: options?.maxTokens ?? 1024,
+        system: systemPrompt,
+        messages: [{ role: "user", content: redactedUser }],
+      }),
+    ),
   );
 
   const block = response.content[0];
@@ -59,24 +67,26 @@ export async function callClaudeStructured<T>(
   schema: ZodType<T>,
   toolName = "submit_result",
 ): Promise<T> {
-  // Convert Zod schema to JSON Schema for tool_use
+  const redactedUser = redactPII(userPrompt);
   const jsonSchema = zodToJsonSchema(schema);
 
-  const response = await withRetry(() =>
-    getClient().messages.create({
-      model: MODEL,
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
-      tools: [
-        {
-          name: toolName,
-          description: "Submit the structured analysis result",
-          input_schema: jsonSchema as Anthropic.Tool["input_schema"],
-        },
-      ],
-      tool_choice: { type: "tool", name: toolName },
-    }),
+  const response = await circuitBreaker.execute(() =>
+    withRetry(() =>
+      getClient().messages.create({
+        model: MODEL,
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: [{ role: "user", content: redactedUser }],
+        tools: [
+          {
+            name: toolName,
+            description: "Submit the structured analysis result",
+            input_schema: jsonSchema as Anthropic.Tool["input_schema"],
+          },
+        ],
+        tool_choice: { type: "tool", name: toolName },
+      }),
+    ),
   );
 
   const toolBlock = response.content.find(
