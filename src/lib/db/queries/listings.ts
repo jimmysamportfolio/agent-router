@@ -38,3 +38,11 @@ export async function insertListing(
   if (!row) throw new DatabaseError("Failed to insert listing");
   return row;
 }
+
+export async function getListingById(
+  listingId: string,
+): Promise<ListingRow | undefined> {
+  return queryOne<ListingRow>(`SELECT * FROM listings WHERE id = $1`, [
+    listingId,
+  ]);
+}
