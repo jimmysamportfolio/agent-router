@@ -68,6 +68,22 @@ describe("aggregateResults", () => {
     expect(decision.confidence).toBe(0);
   });
 
+  it("returns escalated when rejection confidence is exactly 0.7 (exclusive boundary)", () => {
+    const results = [
+      makeResult({ agentName: "a" }),
+      makeResult({ agentName: "b", verdict: "rejected", confidence: 0.7 }),
+    ];
+    expect(aggregateResults(results).verdict).toBe("escalated");
+  });
+
+  it("returns escalated when all approved with avg confidence exactly 0.8 (exclusive boundary)", () => {
+    const results = [
+      makeResult({ agentName: "a", confidence: 0.8 }),
+      makeResult({ agentName: "b", confidence: 0.8 }),
+    ];
+    expect(aggregateResults(results).verdict).toBe("escalated");
+  });
+
   it("deduplicates violations by policySection keeping highest severity", () => {
     const results = [
       makeResult({

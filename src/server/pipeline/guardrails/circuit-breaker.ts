@@ -50,6 +50,8 @@ export class CircuitBreaker {
     }
     if (this.state === "half_open") {
       this.state = "closed";
+      this.results = [];
+      this.lastFailureTime = 0;
     }
   }
 

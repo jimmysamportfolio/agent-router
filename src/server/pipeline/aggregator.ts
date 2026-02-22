@@ -4,6 +4,17 @@ import type {
   AgentViolation,
 } from "@/server/pipeline/types";
 
+const SEVERITY_RANKS: Record<string, number> = {
+  low: 1,
+  medium: 2,
+  high: 3,
+  critical: 4,
+};
+
+function severityRank(severity: string): number {
+  return SEVERITY_RANKS[severity] ?? 0;
+}
+
 export function aggregateResults(
   results: SubAgentResult[],
 ): AggregatedDecision {
@@ -31,7 +42,8 @@ export function aggregateResults(
     (r) => r.verdict === "rejected" && r.confidence > 0.7,
   );
   if (hasHighConfidenceRejection) {
-    const rejections = results.filter((r) => r.verdict === "rejected");
+    const rejections = results.filter(
+      (r) => r.verdict === "rejected" && r.confidence > 0.7);
     const avgConfidence =
       rejections.reduce((sum, r) => sum + r.confidence, 0) / rejections.length;
     return { verdict: "rejected", confidence: avgConfidence, violations };
@@ -53,13 +65,3 @@ export function aggregateResults(
   return { verdict: "escalated", confidence: avgConfidence, violations };
 }
 
-const SEVERITY_RANKS: Record<string, number> = {
-  low: 1,
-  medium: 2,
-  high: 3,
-  critical: 4,
-};
-
-function severityRank(severity: string): number {
-  return SEVERITY_RANKS[severity] ?? 0;
-}

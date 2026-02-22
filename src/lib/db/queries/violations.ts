@@ -1,16 +1,11 @@
 import type { PoolClient } from "pg";
 import { query } from "@/lib/db/pool";
-import type { Severity, ViolationRow } from "@/lib/types";
-
-export interface InsertViolation {
-  policySection: string;
-  severity: Severity;
-  description: string;
-}
+import type { ViolationRow } from "@/lib/types";
+import type { AgentViolation } from "@/server/pipeline/types";
 
 export async function insertViolations(
   reviewId: string,
-  violations: InsertViolation[],
+  violations: AgentViolation[],
   client?: PoolClient,
 ): Promise<ViolationRow[]> {
   if (violations.length === 0) return [];

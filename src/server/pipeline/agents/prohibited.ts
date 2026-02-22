@@ -1,19 +1,6 @@
-import { z } from "zod";
 import { callClaudeStructured } from "@/server/pipeline/llm";
 import type { AgentInput, SubAgentResult } from "@/server/pipeline/types";
-
-const resultSchema = z.object({
-  verdict: z.enum(["approved", "rejected", "escalated"]),
-  confidence: z.number().min(0).max(1),
-  violations: z.array(
-    z.object({
-      policySection: z.string(),
-      severity: z.enum(["low", "medium", "high", "critical"]),
-      description: z.string(),
-    }),
-  ),
-  reasoning: z.string(),
-});
+import { resultSchema, buildPolicyContext } from "@/server/pipeline/agents/shared";
 
 const SYSTEM_PROMPT = `You are a marketplace policy compliance agent specializing in prohibited items detection.
 
@@ -28,14 +15,6 @@ Return your analysis as a structured result with verdict, confidence (0-1), any 
 - "rejected" if clear policy violation with high confidence
 - "escalated" if suspicious but uncertain
 - "approved" if no prohibited items detected`;
-
-function buildPolicyContext(input: AgentInput): string {
-  if (input.relevantPolicies.length === 0)
-    return "No specific policies loaded.";
-  return input.relevantPolicies
-    .map((p) => `[${p.sourceFile}] ${p.content}`)
-    .join("\n\n");
-}
 
 export async function checkProhibited(
   input: AgentInput,

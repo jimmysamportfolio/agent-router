@@ -1,6 +1,10 @@
 import { CircuitBreaker } from "@/server/pipeline/guardrails/circuit-breaker";
 
 describe("CircuitBreaker", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("starts in closed state", () => {
     const cb = new CircuitBreaker();
     expect(cb.getState()).toBe("closed");
@@ -15,20 +19,12 @@ describe("CircuitBreaker", () => {
   it("opens after exceeding failure threshold", async () => {
     const cb = new CircuitBreaker({ windowSize: 4, failureThreshold: 0.5 });
 
-    // 3 failures out of 4 calls (75% > 50% threshold)
+    // 3 failures in a window of 4 (75% > 50% threshold)
     for (let i = 0; i < 3; i++) {
-      await cb.execute(() => Promise.resolve("ok")).catch(() => {});
+      try {
+        await cb.execute(() => Promise.reject(new Error("fail")));
+      } catch {}
     }
-    // Still might be closed, need actual failures
-    try {
-      await cb.execute(() => Promise.reject(new Error("fail")));
-    } catch {}
-    try {
-      await cb.execute(() => Promise.reject(new Error("fail")));
-    } catch {}
-    try {
-      await cb.execute(() => Promise.reject(new Error("fail")));
-    } catch {}
 
     expect(cb.getState()).toBe("open");
   });
@@ -74,8 +70,6 @@ describe("CircuitBreaker", () => {
     // Next call should transition to half_open and succeed
     await cb.execute(() => Promise.resolve("ok"));
     expect(cb.getState()).toBe("closed");
-
-    vi.useRealTimers();
   });
 
   it("re-opens from half_open on failure", async () => {
@@ -103,7 +97,5 @@ describe("CircuitBreaker", () => {
       await cb.execute(() => Promise.reject(new Error("fail again")));
     } catch {}
     expect(cb.getState()).toBe("open");
-
-    vi.useRealTimers();
   });
 });

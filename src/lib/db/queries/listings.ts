@@ -16,6 +16,8 @@ const INSERT_LISTING_SQL = `
   VALUES ($1, $2, $3, $4, $5)
   RETURNING *`;
 
+const GET_LISTING_BY_ID_SQL = `SELECT * FROM listings WHERE id = $1`
+
 export async function insertListing(
   input: InsertListingInput,
   client?: PoolClient,
@@ -42,7 +44,7 @@ export async function insertListing(
 export async function getListingById(
   listingId: string,
 ): Promise<ListingRow | undefined> {
-  return queryOne<ListingRow>(`SELECT * FROM listings WHERE id = $1`, [
+  return queryOne<ListingRow>(GET_LISTING_BY_ID_SQL, [
     listingId,
   ]);
 }

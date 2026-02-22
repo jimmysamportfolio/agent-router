@@ -52,7 +52,8 @@ export async function updateReviewStatus(
   return row;
 }
 
-const UPDATE_REVIEW_VERDICT_SQL = `UPDATE reviews SET verdict = $1, confidence = $2, explanation = $3, trace = $4, status = 'complete', updated_at = NOW() WHERE id = $5 RETURNING *`;
+const COMPLETE_STATUS: ReviewStatus = "complete";
+const UPDATE_REVIEW_VERDICT_SQL = `UPDATE reviews SET verdict = $1, confidence = $2, explanation = $3, trace = $4, status = '${COMPLETE_STATUS}', updated_at = NOW() WHERE id = $5 RETURNING *`;
 
 export async function updateReviewVerdict(
   reviewId: string,

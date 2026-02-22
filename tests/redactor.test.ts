@@ -44,4 +44,9 @@ describe("redactPII", () => {
     expect(result).toContain("[SSN]");
     expect(result).not.toContain("a@b.com");
   });
+
+  it("does not redact 7-digit product codes as phone numbers", () => {
+      const clean = "Model 123-4567";
+      expect(redactPII(clean)).toBe(clean);
+    });
 });

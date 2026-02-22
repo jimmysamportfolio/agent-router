@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { ZodType } from "zod";
+import { toJSONSchema, type ZodType } from "zod";
 import { ConfigError } from "@/lib/errors";
 import { CircuitBreaker } from "@/server/pipeline/guardrails/circuit-breaker";
 import { redactPII } from "@/server/pipeline/guardrails/redactor";
@@ -30,6 +30,14 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
     try {
       return await fn();
     } catch (err) {
+      // Don't retry client errors (except rate limits)
+      if (
+        err instanceof Anthropic.APIError &&
+        err.status < 500 &&
+        err.status !== 429
+      ) {
+        throw err;
+      }
       lastError = err;
       if (attempt < MAX_RETRIES - 1) {
         const delay = BASE_DELAY_MS * Math.pow(2, attempt);
@@ -104,95 +112,14 @@ export async function callClaudeStructured<T>(
 }
 
 /**
- * Minimal Zod-to-JSON-Schema converter for the shapes we use.
- * Handles objects, arrays, strings, numbers, enums, and optionals.
- * Written for Zod v4 where internals use `_zod.def` instead of `_def`.
+ * Converts a Zod schema to JSON Schema using Zod's built-in converter (v4.2.0+).
+ * Falls back to { type: "object" } if toJSONSchema is unavailable or throws.
  */
 function zodToJsonSchema(schema: ZodType<unknown>): Record<string, unknown> {
-  const def = (schema as unknown as { _zod?: { def: Record<string, unknown> } })
-    ._zod?.def as Record<string, unknown> | undefined;
-  if (!def) {
-    // Fallback: return permissive schema
+  try {
+    if (typeof toJSONSchema !== "function") return { type: "object" };
+    return toJSONSchema(schema) as Record<string, unknown>;
+  } catch {
     return { type: "object" };
-  }
-
-  const typeName =
-    (def.typeName as string | undefined) ?? (def.type as string | undefined);
-
-  switch (typeName) {
-    case "string":
-      return { type: "string" };
-    case "number":
-    case "float":
-      return { type: "number" };
-    case "boolean":
-      return { type: "boolean" };
-    case "array": {
-      const innerType = def.innerType as ZodType<unknown> | undefined;
-      return {
-        type: "array",
-        items: innerType ? zodToJsonSchema(innerType) : {},
-      };
-    }
-    case "object": {
-      const shape = def.shape as Record<string, ZodType<unknown>> | undefined;
-      if (!shape) return { type: "object" };
-      const properties: Record<string, unknown> = {};
-      const required: string[] = [];
-      for (const [key, value] of Object.entries(shape)) {
-        const valDef = (
-          value as unknown as { _zod?: { def: Record<string, unknown> } }
-        )._zod?.def as Record<string, unknown> | undefined;
-        const valTypeName =
-          (valDef?.typeName as string | undefined) ??
-          (valDef?.type as string | undefined);
-        if (valTypeName === "optional" || valTypeName === "default") {
-          const inner = valDef?.innerType as ZodType<unknown> | undefined;
-          properties[key] = inner ? zodToJsonSchema(inner) : {};
-        } else {
-          properties[key] = zodToJsonSchema(value);
-          required.push(key);
-        }
-      }
-      return { type: "object", properties, required };
-    }
-    case "enum": {
-      const values = def.values as string[] | undefined;
-      return values ? { type: "string", enum: values } : { type: "string" };
-    }
-    case "literal": {
-      const value = def.value;
-      return { type: typeof value, enum: [value] };
-    }
-    case "union": {
-      const options = def.options as ZodType<unknown>[] | undefined;
-      if (!options) return {};
-      // Check if all options are literals (enum-like union)
-      const allLiterals = options.every((opt) => {
-        const optDef = (
-          opt as unknown as { _zod?: { def: Record<string, unknown> } }
-        )._zod?.def as Record<string, unknown> | undefined;
-        const optType =
-          (optDef?.typeName as string | undefined) ??
-          (optDef?.type as string | undefined);
-        return optType === "literal";
-      });
-      if (allLiterals) {
-        const values = options.map((opt) => {
-          const optDef = (
-            opt as unknown as { _zod?: { def: Record<string, unknown> } }
-          )._zod?.def as Record<string, unknown> | undefined;
-          return optDef?.value;
-        });
-        return { type: "string", enum: values };
-      }
-      return { anyOf: options.map(zodToJsonSchema) };
-    }
-    case "optional": {
-      const inner = def.innerType as ZodType<unknown> | undefined;
-      return inner ? zodToJsonSchema(inner) : {};
-    }
-    default:
-      return { type: "object" };
   }
 }

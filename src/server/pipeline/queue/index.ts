@@ -1,5 +1,6 @@
 import type { QueueProvider } from "@/server/pipeline/queue/interface";
 import { BullMQProvider } from "@/server/pipeline/queue/bullmq";
+import { ConfigError } from '@/lib/errors';
 
 export type {
   QueueProvider,
@@ -13,6 +14,6 @@ export function createQueueProvider(): QueueProvider {
     case "bullmq":
       return new BullMQProvider();
     default:
-      throw new Error(`Unknown queue provider: ${provider}`);
+      throw new ConfigError(`Unknown queue provider: ${provider}`);
   }
 }

@@ -1,5 +1,5 @@
-import { Queue, Worker } from "bullmq";
-import type { ConnectionOptions } from "bullmq";
+import IORedis from "ioredis";
+import { Queue, Worker, type ConnectionOptions } from "bullmq";
 import { REVIEW_QUEUE_NAME, type ReviewJobData } from "@/lib/queue";
 import { ConfigError, InvariantError } from "@/lib/errors";
 import type {
@@ -8,18 +8,21 @@ import type {
 } from "@/server/pipeline/queue/interface";
 
 export class BullMQProvider implements QueueProvider {
-  private readonly connection: ConnectionOptions;
+  private readonly connection: IORedis;
+
   private queue: Queue | undefined;
 
   constructor() {
     if (!process.env.REDIS_URL) throw new ConfigError("REDIS_URL");
-    this.connection = { url: process.env.REDIS_URL };
+    this.connection = new IORedis(process.env.REDIS_URL, {
+      maxRetriesPerRequest: null,
+    });
   }
 
   private getQueue(): Queue {
     if (this.queue) return this.queue;
     this.queue = new Queue(REVIEW_QUEUE_NAME, {
-      connection: this.connection,
+      connection: this.connection as ConnectionOptions,
       defaultJobOptions: {
         removeOnComplete: 100,
         removeOnFail: 500,
@@ -40,7 +43,7 @@ export class BullMQProvider implements QueueProvider {
     const worker = new Worker<ReviewJobData>(
       REVIEW_QUEUE_NAME,
       async (job) => handler(job.data),
-      { connection: this.connection, concurrency: 3 },
+      { connection: this.connection as ConnectionOptions, concurrency: 3 },
     );
 
     worker.on("failed", (job, err) => {

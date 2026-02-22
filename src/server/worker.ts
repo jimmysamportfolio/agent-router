@@ -1,11 +1,14 @@
-import { Worker, type Job } from "bullmq";
+import IORedis from "ioredis";
+import { Worker, type Job, type ConnectionOptions } from "bullmq";
 import { REVIEW_QUEUE_NAME, type ReviewJobData } from "@/lib/queue";
 import { processReview } from "@/server/pipeline/orchestrator";
 import { ConfigError } from "@/lib/errors";
 
 if (!process.env.REDIS_URL) throw new ConfigError("REDIS_URL");
 
-const connection = { url: process.env.REDIS_URL };
+const connection = new IORedis(process.env.REDIS_URL, {
+  maxRetriesPerRequest: null,
+});
 
 async function handleJob(job: Job<ReviewJobData>): Promise<void> {
   console.log(
@@ -16,7 +19,7 @@ async function handleJob(job: Job<ReviewJobData>): Promise<void> {
 }
 
 const worker = new Worker<ReviewJobData>(REVIEW_QUEUE_NAME, handleJob, {
-  connection,
+  connection: connection as ConnectionOptions,
   concurrency: 3,
 });
 
@@ -32,9 +35,15 @@ console.log(`[Worker] Listening on queue "${REVIEW_QUEUE_NAME}"...`);
 
 function shutdown(): void {
   console.log("[Worker] Shutting down...");
-  worker.close().then(() => {
+  worker
+  .close()
+  .then(() => {
     console.log("[Worker] Closed.");
     process.exit(0);
+  })
+  .catch((err: unknown) => {
+    console.error("[Worker] Error during shutdown:", err);
+    process.exit(1);
   });
 }
 

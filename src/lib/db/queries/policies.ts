@@ -2,6 +2,42 @@ import { query, executeInTransaction } from "@/lib/db/pool";
 import { ValidationError } from "@/lib/errors";
 import type { PolicyChunk } from "@/lib/utils/embedding";
 
+// helper
+function validateChunksAndEmbeddings(
+  chunks: PolicyChunk[],
+  embeddings: number[][],
+): void {
+  if (chunks.length !== embeddings.length) {
+    throw new ValidationError(
+      `chunks/embeddings length mismatch: ${chunks.length} chunks vs ${embeddings.length} embeddings`,
+    );
+  }
+}
+
+// helper
+function buildPolicyChunksInsert(
+  chunks: PolicyChunk[],
+  embeddings: number[][],
+): { sql: string; params: unknown[] } {
+  const params: unknown[] = [];
+  const valuePlaceholders = chunks.map((chunk, index) => {
+    const offset = params.length + 1;
+    params.push(
+      chunk.sourceFile,
+      chunk.chunkIndex,
+      chunk.content,
+      `[${embeddings[index]!.join(",")}]`,
+      JSON.stringify(chunk.metadata),
+    );
+    return `($${offset}, $${offset + 1}, $${offset + 2}, $${offset + 3}::vector, $${offset + 4})`;
+  });
+
+  const sql = `INSERT INTO policy_chunks (source_file, chunk_index, content, embedding, metadata)
+       VALUES ${valuePlaceholders.join(", ")}`;
+
+  return { sql, params };
+}
+
 export async function upsertPolicyChunks(
   chunks: PolicyChunk[],
   embeddings: number[][],
@@ -71,38 +107,4 @@ export async function searchPoliciesByEmbedding(
   );
 }
 
-// helpers
 
-function validateChunksAndEmbeddings(
-  chunks: PolicyChunk[],
-  embeddings: number[][],
-): void {
-  if (chunks.length !== embeddings.length) {
-    throw new ValidationError(
-      `chunks/embeddings length mismatch: ${chunks.length} chunks vs ${embeddings.length} embeddings`,
-    );
-  }
-}
-
-function buildPolicyChunksInsert(
-  chunks: PolicyChunk[],
-  embeddings: number[][],
-): { sql: string; params: unknown[] } {
-  const params: unknown[] = [];
-  const valuePlaceholders = chunks.map((chunk, index) => {
-    const offset = params.length + 1;
-    params.push(
-      chunk.sourceFile,
-      chunk.chunkIndex,
-      chunk.content,
-      `[${embeddings[index]!.join(",")}]`,
-      JSON.stringify(chunk.metadata),
-    );
-    return `($${offset}, $${offset + 1}, $${offset + 2}, $${offset + 3}::vector, $${offset + 4})`;
-  });
-
-  const sql = `INSERT INTO policy_chunks (source_file, chunk_index, content, embedding, metadata)
-       VALUES ${valuePlaceholders.join(", ")}`;
-
-  return { sql, params };
-}

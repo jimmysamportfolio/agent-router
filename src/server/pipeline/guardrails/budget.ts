@@ -5,6 +5,11 @@ const CHARS_PER_TOKEN = 4;
 
 export class BudgetGuard {
   private usage = new Map<string, number>();
+  private readonly budget: number;
+
+  constructor(budget: number = DEFAULT_TOKEN_BUDGET) {
+    this.budget = budget;
+  }
 
   estimateTokens(text: string): number {
     return Math.ceil(text.length / CHARS_PER_TOKEN);
@@ -17,9 +22,9 @@ export class BudgetGuard {
     const updated = current + tokens;
     this.usage.set(reviewId, updated);
 
-    if (updated > DEFAULT_TOKEN_BUDGET) {
+    if (updated > this.budget) {
       throw new InvariantError(
-        `Token budget exceeded for review ${reviewId}: ${updated} > ${DEFAULT_TOKEN_BUDGET}`,
+        `Token budget exceeded for review ${reviewId}: ${updated} > ${this.budget}`,
       );
     }
   }
