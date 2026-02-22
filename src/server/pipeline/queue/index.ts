@@ -1,6 +1,6 @@
 import type { QueueProvider } from "@/server/pipeline/queue/interface";
 import { BullMQProvider } from "@/server/pipeline/queue/bullmq";
-import { ConfigError } from '@/lib/errors';
+import { ConfigError } from "@/lib/errors";
 
 export type {
   QueueProvider,

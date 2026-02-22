@@ -8,6 +8,7 @@ export class CircuitBreaker {
   private state: State = "closed";
   private results: boolean[] = [];
   private lastFailureTime = 0;
+  private inFlightProbe = false;
   private readonly failureThreshold: number;
   private readonly windowSize: number;
   private readonly recoveryTimeoutMs: number;
@@ -19,7 +20,7 @@ export class CircuitBreaker {
   }) {
     this.failureThreshold =
       options?.failureThreshold ?? DEFAULT_FAILURE_THRESHOLD;
-    this.windowSize = options?.windowSize ?? DEFAULT_WINDOW_SIZE;
+    this.windowSize = Math.max(1, options?.windowSize ?? DEFAULT_WINDOW_SIZE);
     this.recoveryTimeoutMs =
       options?.recoveryTimeoutMs ?? DEFAULT_RECOVERY_TIMEOUT_MS;
   }
@@ -28,9 +29,17 @@ export class CircuitBreaker {
     if (this.state === "open") {
       if (Date.now() - this.lastFailureTime >= this.recoveryTimeoutMs) {
         this.state = "half_open";
+        this.inFlightProbe = false;
       } else {
         throw new Error("Circuit breaker is open");
       }
+    }
+
+    if (this.state === "half_open") {
+      if (this.inFlightProbe) {
+        throw new Error("Circuit breaker is open");
+      }
+      this.inFlightProbe = true;
     }
 
     try {
@@ -44,6 +53,7 @@ export class CircuitBreaker {
   }
 
   private recordSuccess(): void {
+    this.inFlightProbe = false;
     this.results.push(true);
     if (this.results.length > this.windowSize) {
       this.results.shift();
@@ -56,6 +66,7 @@ export class CircuitBreaker {
   }
 
   private recordFailure(): void {
+    this.inFlightProbe = false;
     this.results.push(false);
     if (this.results.length > this.windowSize) {
       this.results.shift();
@@ -69,7 +80,10 @@ export class CircuitBreaker {
 
     const failures = this.results.filter((r) => !r).length;
     const failureRate = failures / this.results.length;
-    if (failureRate > this.failureThreshold && this.results.length >= 2) {
+    if (
+      failureRate > this.failureThreshold &&
+      this.results.length >= this.windowSize
+    ) {
       this.state = "open";
     }
   }

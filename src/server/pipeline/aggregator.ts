@@ -43,7 +43,8 @@ export function aggregateResults(
   );
   if (hasHighConfidenceRejection) {
     const rejections = results.filter(
-      (r) => r.verdict === "rejected" && r.confidence > 0.7);
+      (r) => r.verdict === "rejected" && r.confidence > 0.7,
+    );
     const avgConfidence =
       rejections.reduce((sum, r) => sum + r.confidence, 0) / rejections.length;
     return { verdict: "rejected", confidence: avgConfidence, violations };
@@ -64,4 +65,3 @@ export function aggregateResults(
     results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
   return { verdict: "escalated", confidence: avgConfidence, violations };
 }
-

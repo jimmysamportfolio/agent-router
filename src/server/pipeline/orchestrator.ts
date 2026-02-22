@@ -106,7 +106,13 @@ export async function processReview(reviewId: string): Promise<void> {
     });
 
     traces.push(traceNode("persist", startedAt, start));
-    await updateReviewVerdict(reviewId, decision.verdict, decision.confidence, explanation, { traces });
+    await updateReviewVerdict(
+      reviewId,
+      decision.verdict,
+      decision.confidence,
+      explanation,
+      { traces },
+    );
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     traces.push(

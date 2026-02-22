@@ -8,21 +8,22 @@ import type {
 } from "@/server/pipeline/queue/interface";
 
 export class BullMQProvider implements QueueProvider {
-  private readonly connection: IORedis;
-
+  private queueConnection: IORedis | undefined;
   private queue: Queue | undefined;
 
-  constructor() {
+  private getQueueConnection(): IORedis {
+    if (this.queueConnection) return this.queueConnection;
     if (!process.env.REDIS_URL) throw new ConfigError("REDIS_URL");
-    this.connection = new IORedis(process.env.REDIS_URL, {
+    this.queueConnection = new IORedis(process.env.REDIS_URL, {
       maxRetriesPerRequest: null,
     });
+    return this.queueConnection;
   }
 
   private getQueue(): Queue {
     if (this.queue) return this.queue;
     this.queue = new Queue(REVIEW_QUEUE_NAME, {
-      connection: this.connection as ConnectionOptions,
+      connection: this.getQueueConnection() as ConnectionOptions,
       defaultJobOptions: {
         removeOnComplete: 100,
         removeOnFail: 500,
@@ -40,10 +41,16 @@ export class BullMQProvider implements QueueProvider {
   createWorker(
     handler: (data: ReviewJobData) => Promise<void>,
   ): QueueWorkerHandle {
+    if (!process.env.REDIS_URL) throw new ConfigError("REDIS_URL");
+
+    const workerConnection = new IORedis(process.env.REDIS_URL, {
+      maxRetriesPerRequest: null,
+    });
+
     const worker = new Worker<ReviewJobData>(
       REVIEW_QUEUE_NAME,
       async (job) => handler(job.data),
-      { connection: this.connection as ConnectionOptions, concurrency: 3 },
+      { connection: workerConnection as ConnectionOptions, concurrency: 3 },
     );
 
     worker.on("failed", (job, err) => {
@@ -54,6 +61,20 @@ export class BullMQProvider implements QueueProvider {
       console.error("[BullMQ] Worker error:", err.message);
     });
 
-    return { close: () => worker.close() };
+    return {
+      close: async () => {
+        await worker.close();
+        await workerConnection.quit();
+      },
+    };
+  }
+
+  async close(): Promise<void> {
+    if (this.queue) {
+      await this.queue.close();
+    }
+    if (this.queueConnection) {
+      await this.queueConnection.quit();
+    }
   }
 }

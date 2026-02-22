@@ -1,13 +1,16 @@
 import { callClaudeStructured } from "@/server/pipeline/llm";
 import type { AgentInput, SubAgentResult } from "@/server/pipeline/types";
-import { resultSchema, buildPolicyContext } from "@/server/pipeline/agents/shared";
+import {
+  resultSchema,
+  buildPolicyContext,
+} from "@/server/pipeline/agents/shared";
 
 const SYSTEM_PROMPT = `You are a marketplace policy compliance agent specializing in health and medical claims detection.
 
 Your job is to analyze listings for unapproved health and medical claims:
-- \u00a71.2 Supplements making unapproved medical claims (e.g., "cures cancer", "treats diabetes")
+- \u00a73.1 Supplements making unapproved medical claims (e.g., "cures cancer", "treats diabetes")
 - \u00a73.2 Therapeutic claims without regulatory approval ("clinically proven", "doctor recommended" without substantiation)
-- \u00a73.2 Prescription-only devices listed without seller verification
+- \u00a73.3 Prescription-only devices listed without seller verification
 - \u00a73.5 Supplements with banned substances or missing ingredient lists
 - FDA compliance: false claims of FDA approval or clearance
 - Miracle cure language: "guaranteed results", "100% effective", "revolutionary treatment"

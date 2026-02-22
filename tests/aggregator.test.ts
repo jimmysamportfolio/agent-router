@@ -42,6 +42,25 @@ describe("aggregateResults", () => {
     ];
     const decision = aggregateResults(results);
     expect(decision.verdict).toBe("rejected");
+    expect(decision.violations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ policySection: "1.1", severity: "high" }),
+      ]),
+    );
+  });
+
+  it("returns escalated when a sub-agent escalates", () => {
+    const results = [
+      makeResult({ agentName: "a", confidence: 0.95 }),
+      makeResult({
+        agentName: "b",
+        verdict: "escalated",
+        confidence: 0.85,
+      }),
+    ];
+    const decision = aggregateResults(results);
+    expect(decision.verdict).toBe("escalated");
+    expect(decision.confidence).toBeCloseTo((0.95 + 0.85) / 2);
   });
 
   it("returns escalated when rejection confidence is <= 0.7", () => {

@@ -1,6 +1,9 @@
 import { callClaudeStructured } from "@/server/pipeline/llm";
 import type { AgentInput, SubAgentResult } from "@/server/pipeline/types";
-import { resultSchema, buildPolicyContext } from "@/server/pipeline/agents/shared";
+import {
+  resultSchema,
+  buildPolicyContext,
+} from "@/server/pipeline/agents/shared";
 
 const SYSTEM_PROMPT = `You are a marketplace policy compliance agent specializing in disintermediation detection.
 
@@ -31,6 +34,7 @@ ${buildPolicyContext(input)}`;
     userPrompt,
     resultSchema,
     "submit_disintermediation_analysis",
+    { skipRedaction: true },
   );
 
   return {

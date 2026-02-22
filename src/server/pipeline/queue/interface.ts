@@ -9,4 +9,5 @@ export interface QueueProvider {
   createWorker(
     handler: (data: ReviewJobData) => Promise<void>,
   ): QueueWorkerHandle;
+  close(): Promise<void>;
 }

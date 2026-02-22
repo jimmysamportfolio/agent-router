@@ -11,12 +11,15 @@ export interface InsertListingInput {
   metadata: Record<string, unknown>;
 }
 
+const LISTING_COLUMNS =
+  "id, title, description, category, image_urls, metadata, created_at";
+
 const INSERT_LISTING_SQL = `
   INSERT INTO listings (title, description, category, image_urls, metadata)
   VALUES ($1, $2, $3, $4, $5)
-  RETURNING *`;
+  RETURNING ${LISTING_COLUMNS}`;
 
-const GET_LISTING_BY_ID_SQL = `SELECT * FROM listings WHERE id = $1`
+const GET_LISTING_BY_ID_SQL = `SELECT ${LISTING_COLUMNS} FROM listings WHERE id = $1`;
 
 export async function insertListing(
   input: InsertListingInput,
@@ -44,7 +47,5 @@ export async function insertListing(
 export async function getListingById(
   listingId: string,
 ): Promise<ListingRow | undefined> {
-  return queryOne<ListingRow>(GET_LISTING_BY_ID_SQL, [
-    listingId,
-  ]);
+  return queryOne<ListingRow>(GET_LISTING_BY_ID_SQL, [listingId]);
 }

@@ -51,9 +51,11 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
 export async function callClaude(
   systemPrompt: string,
   userPrompt: string,
-  options?: { maxTokens?: number },
+  options?: { maxTokens?: number; skipRedaction?: boolean },
 ): Promise<string> {
-  const redactedUser = redactPII(userPrompt);
+  const redactedUser = options?.skipRedaction
+    ? userPrompt
+    : redactPII(userPrompt);
 
   const response = await circuitBreaker.execute(() =>
     withRetry(() =>
@@ -78,8 +80,11 @@ export async function callClaudeStructured<T>(
   userPrompt: string,
   schema: ZodType<T>,
   toolName = "submit_result",
+  options?: { skipRedaction?: boolean },
 ): Promise<T> {
-  const redactedUser = redactPII(userPrompt);
+  const redactedUser = options?.skipRedaction
+    ? userPrompt
+    : redactPII(userPrompt);
   const jsonSchema = zodToJsonSchema(schema);
 
   const response = await circuitBreaker.execute(() =>
@@ -111,10 +116,6 @@ export async function callClaudeStructured<T>(
   return schema.parse(toolBlock.input);
 }
 
-/**
- * Converts a Zod schema to JSON Schema using Zod's built-in converter (v4.2.0+).
- * Falls back to { type: "object" } if toJSONSchema is unavailable or throws.
- */
 function zodToJsonSchema(schema: ZodType<unknown>): Record<string, unknown> {
   try {
     if (typeof toJSONSchema !== "function") return { type: "object" };

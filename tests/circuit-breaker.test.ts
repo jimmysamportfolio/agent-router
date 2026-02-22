@@ -17,10 +17,11 @@ describe("CircuitBreaker", () => {
   });
 
   it("opens after exceeding failure threshold", async () => {
-    const cb = new CircuitBreaker({ windowSize: 4, failureThreshold: 0.5 });
+    const cb = new CircuitBreaker({ windowSize: 3, failureThreshold: 0.5 });
 
-    // 3 failures in a window of 4 (75% > 50% threshold)
-    for (let i = 0; i < 3; i++) {
+    // 3 failures fill the window (100% > 50% threshold) — the circuit opens
+    // on the 3rd recordFailure call; a 4th execute throws before calling fn.
+    for (let i = 0; i < 4; i++) {
       try {
         await cb.execute(() => Promise.reject(new Error("fail")));
       } catch {}
@@ -32,7 +33,6 @@ describe("CircuitBreaker", () => {
   it("rejects calls when open", async () => {
     const cb = new CircuitBreaker({ windowSize: 2, failureThreshold: 0.4 });
 
-    // Force open
     try {
       await cb.execute(() => Promise.reject(new Error("fail")));
     } catch {}
@@ -55,7 +55,6 @@ describe("CircuitBreaker", () => {
       recoveryTimeoutMs: 1000,
     });
 
-    // Force open
     try {
       await cb.execute(() => Promise.reject(new Error("fail")));
     } catch {}
@@ -64,10 +63,8 @@ describe("CircuitBreaker", () => {
     } catch {}
     expect(cb.getState()).toBe("open");
 
-    // Advance time past recovery timeout
     vi.advanceTimersByTime(1001);
 
-    // Next call should transition to half_open and succeed
     await cb.execute(() => Promise.resolve("ok"));
     expect(cb.getState()).toBe("closed");
   });
@@ -81,7 +78,6 @@ describe("CircuitBreaker", () => {
       recoveryTimeoutMs: 1000,
     });
 
-    // Force open
     try {
       await cb.execute(() => Promise.reject(new Error("fail")));
     } catch {}
@@ -92,10 +88,19 @@ describe("CircuitBreaker", () => {
 
     vi.advanceTimersByTime(1001);
 
-    // Fail in half_open → back to open
     try {
       await cb.execute(() => Promise.reject(new Error("fail again")));
     } catch {}
+    expect(cb.getState()).toBe("open");
+  });
+
+  it("clamps windowSize to a minimum of 1", async () => {
+    const cb = new CircuitBreaker({ windowSize: 0, failureThreshold: 0.5 });
+
+    try {
+      await cb.execute(() => Promise.reject(new Error("fail")));
+    } catch {}
+
     expect(cb.getState()).toBe("open");
   });
 });
