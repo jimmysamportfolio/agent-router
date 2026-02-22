@@ -6,6 +6,17 @@ const PARAMS_PER_CHUNK = 5;
 const MAX_PG_PARAMS = 65535;
 const MAX_CHUNKS_PER_BATCH = Math.floor(MAX_PG_PARAMS / PARAMS_PER_CHUNK);
 
+const UPSERT_CONFLICT_SQL = `ON CONFLICT (source_file, chunk_index) DO UPDATE
+  SET content   = EXCLUDED.content,
+      embedding = EXCLUDED.embedding,
+      metadata  = EXCLUDED.metadata`;
+const DELETE_ALL_POLICY_CHUNKS_SQL = `DELETE FROM policy_chunks`;
+const SEARCH_POLICIES_BY_EMBEDDING_SQL = `WITH q AS (SELECT $1::vector AS v)
+  SELECT source_file, content, 1 - (embedding <=> q.v) AS similarity
+  FROM policy_chunks, q
+  ORDER BY embedding <=> q.v
+  LIMIT $2`;
+
 interface PolicySearchRow {
   source_file: string;
   content: string;
@@ -74,14 +85,7 @@ export async function upsertPolicyChunks(
         batch.chunks,
         batch.embeddings,
       );
-      await connection.query(
-        `${sql}
-       ON CONFLICT (source_file, chunk_index) DO UPDATE
-         SET content   = EXCLUDED.content,
-             embedding = EXCLUDED.embedding,
-             metadata  = EXCLUDED.metadata`,
-        params,
-      );
+      await connection.query(`${sql}\n       ${UPSERT_CONFLICT_SQL}`, params);
     }
   });
 }
@@ -105,7 +109,7 @@ export async function replaceAllPolicyChunks(
   }
 
   await executeInTransaction(async (connection) => {
-    await connection.query("DELETE FROM policy_chunks");
+    await connection.query(DELETE_ALL_POLICY_CHUNKS_SQL);
 
     if (chunks.length === 0) return;
 
@@ -128,13 +132,8 @@ export async function searchPoliciesByEmbedding(
   }
 
   const vector = `[${embedding.join(",")}]`;
-  return query<PolicySearchRow>(
-    `WITH q AS (SELECT $1::vector AS v)
-     SELECT source_file, content,
-            1 - (embedding <=> q.v) AS similarity
-     FROM policy_chunks, q
-     ORDER BY embedding <=> q.v
-     LIMIT $2`,
-    [vector, limit],
-  );
+  return query<PolicySearchRow>(SEARCH_POLICIES_BY_EMBEDDING_SQL, [
+    vector,
+    limit,
+  ]);
 }

@@ -22,10 +22,12 @@ export async function insertReview(
   return row;
 }
 
+const GET_REVIEW_BY_ID_SQL = `SELECT * FROM reviews WHERE id = $1`;
+
 export async function getReviewById(
   reviewId: string,
 ): Promise<ReviewRow | undefined> {
-  return queryOne<ReviewRow>(`SELECT * FROM reviews WHERE id = $1`, [reviewId]);
+  return queryOne<ReviewRow>(GET_REVIEW_BY_ID_SQL, [reviewId]);
 }
 
 const UPDATE_REVIEW_STATUS_SQL = `UPDATE reviews SET status = $1, trace = COALESCE($2, trace), updated_at = NOW() WHERE id = $3 RETURNING *`;
@@ -53,7 +55,7 @@ export async function updateReviewStatus(
 }
 
 const COMPLETE_STATUS: ReviewStatus = "complete";
-const UPDATE_REVIEW_VERDICT_SQL = `UPDATE reviews SET verdict = $1, confidence = $2, explanation = $3, trace = $4, status = '${COMPLETE_STATUS}', updated_at = NOW() WHERE id = $5 RETURNING *`;
+const UPDATE_REVIEW_VERDICT_SQL = `UPDATE reviews SET verdict = $1, confidence = $2, explanation = $3, trace = $4, status = $5, updated_at = NOW() WHERE id = $6 RETURNING *`;
 
 export async function updateReviewVerdict(
   reviewId: string,
@@ -63,7 +65,14 @@ export async function updateReviewVerdict(
   trace: Record<string, unknown>,
   client?: PoolClient,
 ): Promise<ReviewRow> {
-  const params = [verdict, confidence, explanation, trace, reviewId];
+  const params = [
+    verdict,
+    confidence,
+    explanation,
+    trace,
+    COMPLETE_STATUS,
+    reviewId,
+  ];
 
   if (client) {
     const { rows } = await client.query<ReviewRow>(
