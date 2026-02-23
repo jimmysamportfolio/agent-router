@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { toJSONSchema, type ZodType } from "zod";
 import { ConfigError } from "@/lib/errors";
 import { CircuitBreaker } from "@/server/pipeline/guardrails/circuit-breaker";
-import { redactPII } from "@/server/pipeline/guardrails/redactor";
+import { redactPersonalInformation } from "@/server/pipeline/guardrails/redactor";
 
 const MODEL = "claude-sonnet-4-5-20250929";
 const MAX_RETRIES = 3;
@@ -55,7 +55,7 @@ export async function callClaude(
 ): Promise<string> {
   const redactedUser = options?.skipRedaction
     ? userPrompt
-    : redactPII(userPrompt);
+    : redactPersonalInformation(userPrompt);
 
   const response = await circuitBreaker.execute(() =>
     withRetry(() =>
@@ -84,7 +84,7 @@ export async function callClaudeStructured<T>(
 ): Promise<T> {
   const redactedUser = options?.skipRedaction
     ? userPrompt
-    : redactPII(userPrompt);
+    : redactPersonalInformation(userPrompt);
   const jsonSchema = zodToJsonSchema(schema);
 
   const response = await circuitBreaker.execute(() =>
