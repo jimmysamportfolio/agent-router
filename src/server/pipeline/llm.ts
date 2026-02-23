@@ -2,6 +2,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import { toJSONSchema, type ZodType } from "zod";
 import { ConfigError } from "@/lib/errors";
 import { redactPersonalInformation } from "@/server/pipeline/guardrails/redactor";
+import type {
+  LLMTextResult,
+  LLMStructuredResult,
+} from "@/server/pipeline/types";
 
 const MODEL = "claude-sonnet-4-5-20250929";
 const MAX_RETRIES = 3;
@@ -49,7 +53,7 @@ export async function callClaude(
   systemPrompt: string,
   userPrompt: string,
   options?: { maxTokens?: number; skipRedaction?: boolean },
-): Promise<string> {
+): Promise<LLMTextResult> {
   const redactedUser = options?.skipRedaction
     ? userPrompt
     : redactPersonalInformation(userPrompt);
@@ -67,7 +71,9 @@ export async function callClaude(
   if (!block || block.type !== "text") {
     throw new Error("Unexpected response format from Claude");
   }
-  return block.text;
+
+  const tokensUsed = response.usage.input_tokens + response.usage.output_tokens;
+  return { text: block.text, tokensUsed };
 }
 
 export async function callClaudeStructured<T>(
@@ -76,7 +82,7 @@ export async function callClaudeStructured<T>(
   schema: ZodType<T>,
   toolName = "submit_result",
   options?: { skipRedaction?: boolean },
-): Promise<T> {
+): Promise<LLMStructuredResult<T>> {
   const redactedUser = options?.skipRedaction
     ? userPrompt
     : redactPersonalInformation(userPrompt);
@@ -106,7 +112,8 @@ export async function callClaudeStructured<T>(
     throw new Error("Claude did not return a tool_use block");
   }
 
-  return schema.parse(toolBlock.input);
+  const tokensUsed = response.usage.input_tokens + response.usage.output_tokens;
+  return { data: schema.parse(toolBlock.input), tokensUsed };
 }
 
 function zodToJsonSchema(schema: ZodType<unknown>): Record<string, unknown> {

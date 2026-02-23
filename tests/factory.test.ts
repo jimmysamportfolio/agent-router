@@ -58,12 +58,14 @@ function makePolicies(): PolicyMatch[] {
   ];
 }
 
-const MOCK_LLM_RESULT = {
+const MOCK_LLM_DATA = {
   verdict: "approved" as const,
   confidence: 0.95,
   violations: [],
   reasoning: "No issues found",
 };
+
+const MOCK_LLM_RESULT = { data: MOCK_LLM_DATA, tokensUsed: 150 };
 
 describe("createPolicyAgent", () => {
   beforeEach(() => {

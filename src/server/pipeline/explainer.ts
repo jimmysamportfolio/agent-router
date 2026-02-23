@@ -1,5 +1,6 @@
 import { callClaude } from "@/server/pipeline/llm";
 import type { ListingRow } from "@/lib/types";
+import type { TokenTracker } from "@/server/pipeline/guardrails/budget";
 import type {
   AggregatedDecision,
   SubAgentResult,
@@ -11,6 +12,7 @@ export async function explainDecision(
   decision: AggregatedDecision,
   listing: ListingRow,
   results: SubAgentResult[],
+  tokenTracker?: TokenTracker,
 ): Promise<string> {
   const agentSummaries = results
     .map(
@@ -40,5 +42,9 @@ ${agentSummaries}
 
 Write a 2-3 sentence explanation of this decision.`;
 
-  return callClaude(SYSTEM_PROMPT, userPrompt, { maxTokens: 256 });
+  const { text, tokensUsed } = await callClaude(SYSTEM_PROMPT, userPrompt, {
+    maxTokens: 256,
+  });
+  tokenTracker?.add(tokensUsed);
+  return text;
 }

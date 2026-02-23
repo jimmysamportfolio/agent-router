@@ -12,6 +12,7 @@ import { createPolicyAgent } from "@/server/pipeline/agents/factory";
 import { checkImages } from "@/server/pipeline/agents/image-analysis";
 import { aggregateResults } from "@/server/pipeline/aggregator";
 import { explainDecision } from "@/server/pipeline/explainer";
+import { TokenTracker } from "@/server/pipeline/guardrails/budget";
 import type { ListingRow } from "@/lib/types";
 import type {
   AgentDispatchPlan,
@@ -74,9 +75,15 @@ async function runAgents(
 async function aggregateAndExplain(
   results: SubAgentResult[],
   listing: ListingRow,
+  tokenTracker?: TokenTracker,
 ) {
   const decision = aggregateResults(results);
-  const explanation = await explainDecision(decision, listing, results);
+  const explanation = await explainDecision(
+    decision,
+    listing,
+    results,
+    tokenTracker,
+  );
   return { decision, explanation };
 }
 
@@ -108,6 +115,7 @@ export async function processReview(
   tenantId: string,
 ): Promise<void> {
   const traces: NodeTrace[] = [];
+  const tokenTracker = new TokenTracker();
 
   try {
     await updateReviewStatus(reviewId, "routing");
@@ -121,13 +129,13 @@ export async function processReview(
     );
 
     const agentResults = await trackStep(traces, "scanning", () =>
-      runAgents(dispatchPlans, { reviewId, listing }),
+      runAgents(dispatchPlans, { reviewId, listing, tokenTracker }),
     );
 
     const { decision, explanation } = await trackStep(
       traces,
       "aggregating",
-      () => aggregateAndExplain(agentResults, listing),
+      () => aggregateAndExplain(agentResults, listing, tokenTracker),
     );
 
     await trackStep(traces, "persist", () =>

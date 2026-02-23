@@ -1,9 +1,23 @@
 import type { ListingRow, Severity, Verdict } from "@/lib/types";
+import type { TokenTracker } from "@/server/pipeline/guardrails/budget";
+
+/** Result from an LLM text completion */
+export interface LLMTextResult {
+  text: string;
+  tokensUsed: number;
+}
+
+/** Result from an LLM structured (tool) completion */
+export interface LLMStructuredResult<T> {
+  data: T;
+  tokensUsed: number;
+}
 
 /** Input passed to each sub-agent for analysis */
 export interface AgentInput {
   reviewId: string;
   listing: ListingRow;
+  tokenTracker?: TokenTracker;
 }
 
 /** A policy chunk matched by vector search */

@@ -55,7 +55,7 @@ export function createPolicyAgent(
   return async (input: AgentInput): Promise<SubAgentResult> => {
     const userPrompt = buildUserPrompt(input);
 
-    const result = await callClaudeStructured(
+    const { data, tokensUsed } = await callClaudeStructured(
       systemPrompt,
       userPrompt,
       resultSchema,
@@ -63,13 +63,14 @@ export function createPolicyAgent(
       { skipRedaction: config.options.skipRedaction ?? false },
     );
 
-    const agentResult: SubAgentResult = {
+    input.tokenTracker?.add(tokensUsed);
+
+    return {
       agentName: config.name,
-      verdict: result.verdict,
-      confidence: result.confidence,
-      violations: result.violations,
-      reasoning: result.reasoning,
+      verdict: data.verdict,
+      confidence: data.confidence,
+      violations: data.violations,
+      reasoning: data.reasoning,
     };
-    return agentResult;
   };
 }
