@@ -4,6 +4,7 @@ import { DatabaseError } from "@/lib/errors";
 import type { ListingRow } from "@/lib/types";
 
 export interface InsertListingInput {
+  tenantId: string;
   title: string;
   description: string;
   category: string;
@@ -12,11 +13,11 @@ export interface InsertListingInput {
 }
 
 const LISTING_COLUMNS =
-  "id, title, description, category, image_urls, metadata, created_at";
+  "id, tenant_id, title, description, category, image_urls, metadata, created_at";
 
 const INSERT_LISTING_SQL = `
-  INSERT INTO listings (title, description, category, image_urls, metadata)
-  VALUES ($1, $2, $3, $4, $5)
+  INSERT INTO listings (tenant_id, title, description, category, image_urls, metadata)
+  VALUES ($1, $2, $3, $4, $5, $6)
   RETURNING ${LISTING_COLUMNS}`;
 
 const GET_LISTING_BY_ID_SQL = `SELECT ${LISTING_COLUMNS} FROM listings WHERE id = $1`;
@@ -26,6 +27,7 @@ export async function insertListing(
   client?: PoolClient,
 ): Promise<ListingRow> {
   const params = [
+    input.tenantId,
     input.title,
     input.description,
     input.category,
