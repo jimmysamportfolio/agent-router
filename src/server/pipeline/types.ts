@@ -44,3 +44,26 @@ export interface NodeTrace {
   durationMs: number;
   error?: string;
 }
+
+/** Configuration for a dynamically-created policy agent */
+export interface AgentConfig {
+  id: string;
+  tenantId: string;
+  name: string;
+  displayName: string;
+  systemPromptTemplate: string;
+  policySourceFiles: string[];
+  options: AgentOptions;
+}
+
+/** Options that control agent behavior */
+export interface AgentOptions {
+  skipRedaction?: boolean;
+  maxTokens?: number;
+}
+
+/** A dispatch plan pairing an agent config with its relevant policies */
+export interface AgentDispatchPlan {
+  agentConfig: AgentConfig;
+  relevantPolicies: PolicyMatch[];
+}
