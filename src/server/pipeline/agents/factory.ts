@@ -1,5 +1,5 @@
+import { z } from "zod";
 import { callClaudeStructured } from "@/server/pipeline/llm";
-import { resultSchema } from "@/server/pipeline/agents/shared";
 import type {
   AgentConfig,
   AgentInput,
@@ -8,6 +8,19 @@ import type {
 } from "@/server/pipeline/types";
 
 const POLICY_PLACEHOLDER = "{{POLICY_CONTEXT}}";
+
+export const resultSchema = z.object({
+  verdict: z.enum(["approved", "rejected", "escalated"]),
+  confidence: z.number().min(0).max(1),
+  violations: z.array(
+    z.object({
+      policySection: z.string(),
+      severity: z.enum(["low", "medium", "high", "critical"]),
+      description: z.string(),
+    }),
+  ),
+  reasoning: z.string(),
+});
 
 function formatPolicies(policies: PolicyMatch[]): string {
   if (policies.length === 0) return "No specific policies loaded.";
@@ -50,12 +63,13 @@ export function createPolicyAgent(
       { skipRedaction: config.options.skipRedaction ?? false },
     );
 
-    return {
+    const agentResult: SubAgentResult = {
       agentName: config.name,
       verdict: result.verdict,
       confidence: result.confidence,
       violations: result.violations,
       reasoning: result.reasoning,
     };
+    return agentResult;
   };
 }
