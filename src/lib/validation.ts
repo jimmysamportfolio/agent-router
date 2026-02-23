@@ -3,8 +3,6 @@ import { z } from "zod";
 export const reviewStatusSchema = z.enum([
   "pending",
   "routing",
-  "scanning",
-  "aggregating",
   "complete",
   "escalated",
   "failed",

@@ -47,7 +47,6 @@ function makeInput(overrides: Partial<AgentInput> = {}): AgentInput {
   return {
     reviewId: "review-1",
     listing: makeListing(),
-    relevantPolicies: [],
     ...overrides,
   };
 }

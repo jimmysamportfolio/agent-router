@@ -12,24 +12,96 @@ import { createPolicyAgent } from "@/server/pipeline/agents/factory";
 import { checkImages } from "@/server/pipeline/agents/image-analysis";
 import { aggregateResults } from "@/server/pipeline/aggregator";
 import { explainDecision } from "@/server/pipeline/explainer";
-import type { AgentInput, NodeTrace } from "@/server/pipeline/types";
+import type { ListingRow } from "@/lib/types";
+import type {
+  AgentDispatchPlan,
+  AgentInput,
+  AggregatedDecision,
+  NodeTrace,
+  SubAgentResult,
+} from "@/server/pipeline/types";
 
-function traceNode(
-  nodeName: string,
-  startedAt: string,
-  startMs: number,
-  error?: string,
-): NodeTrace {
-  const trace: NodeTrace = {
-    nodeName,
-    startedAt,
-    durationMs: Date.now() - startMs,
-  };
-  if (error !== undefined) {
-    trace.error = error;
+async function trackStep<T>(
+  traces: NodeTrace[],
+  name: string,
+  fn: () => T | Promise<T>,
+): Promise<T> {
+  const startedAt = new Date().toISOString();
+  const startMs = Date.now();
+  try {
+    const result = await fn();
+    traces.push({
+      nodeName: name,
+      startedAt,
+      durationMs: Date.now() - startMs,
+    });
+    return result;
+  } catch (err) {
+    const trace: NodeTrace = {
+      nodeName: name,
+      startedAt,
+      durationMs: Date.now() - startMs,
+    };
+    trace.error = err instanceof Error ? err.message : String(err);
+    traces.push(trace);
+    throw err;
   }
-  return trace;
 }
+
+// ── Pipeline steps ──────────────────────────────────────────────────
+
+async function fetchReviewAndListing(reviewId: string) {
+  const review = await getReviewById(reviewId);
+  if (!review) throw new DatabaseError(`Review not found: ${reviewId}`);
+
+  const listing = await getListingById(review.listing_id);
+  if (!listing)
+    throw new DatabaseError(`Listing not found: ${review.listing_id}`);
+
+  return { review, listing };
+}
+
+async function runAgents(
+  dispatchPlans: AgentDispatchPlan[],
+  input: AgentInput,
+): Promise<SubAgentResult[]> {
+  const policyAgents = dispatchPlans.map((plan) =>
+    createPolicyAgent(plan.agentConfig, plan.relevantPolicies)(input),
+  );
+  return Promise.all([...policyAgents, checkImages(input)]);
+}
+
+async function aggregateAndExplain(
+  results: SubAgentResult[],
+  listing: ListingRow,
+) {
+  const decision = aggregateResults(results);
+  const explanation = await explainDecision(decision, listing, results);
+  return { decision, explanation };
+}
+
+async function persistVerdict(
+  reviewId: string,
+  decision: AggregatedDecision,
+  explanation: string,
+  trace: Record<string, unknown>,
+): Promise<void> {
+  await executeInTransaction(async (client) => {
+    await updateReviewVerdict(
+      reviewId,
+      decision.verdict,
+      decision.confidence,
+      explanation,
+      trace,
+      client,
+    );
+    if (decision.violations.length > 0) {
+      await insertViolations(reviewId, decision.violations, client);
+    }
+  });
+}
+
+// ── Main orchestrator ───────────────────────────────────────────────
 
 export async function processReview(
   reviewId: string,
@@ -38,99 +110,36 @@ export async function processReview(
   const traces: NodeTrace[] = [];
 
   try {
-    // Fetch review + listing
-    let start = Date.now();
-    let startedAt = new Date().toISOString();
+    await updateReviewStatus(reviewId, "routing");
 
-    const review = await getReviewById(reviewId);
-    if (!review) throw new DatabaseError(`Review not found: ${reviewId}`);
-
-    const listing = await getListingById(review.listing_id);
-    if (!listing)
-      throw new DatabaseError(`Listing not found: ${review.listing_id}`);
-
-    traces.push(traceNode("fetch", startedAt, start));
-
-    // Route — plan dynamic agent dispatch
-    start = Date.now();
-    startedAt = new Date().toISOString();
-    await updateReviewStatus(reviewId, "routing", { traces });
-
-    const dispatchPlans = await planAgentDispatch(listing, tenantId);
-    traces.push(traceNode("routing", startedAt, start));
-
-    // Scan with dynamic agents + built-in image analysis
-    start = Date.now();
-    startedAt = new Date().toISOString();
-    await updateReviewStatus(reviewId, "scanning", { traces });
-
-    const agentInput: AgentInput = {
-      reviewId,
-      listing,
-      relevantPolicies: [],
-    };
-
-    const dynamicAgentPromises = dispatchPlans.map((plan) =>
-      createPolicyAgent(plan.agentConfig, plan.relevantPolicies)(agentInput),
+    const { listing } = await trackStep(traces, "fetch", () =>
+      fetchReviewAndListing(reviewId),
     );
 
-    const agentResults = await Promise.all([
-      ...dynamicAgentPromises,
-      checkImages(agentInput),
-    ]);
-    traces.push(traceNode("scanning", startedAt, start));
+    const dispatchPlans = await trackStep(traces, "routing", () =>
+      planAgentDispatch(listing, tenantId),
+    );
 
-    // Aggregate
-    start = Date.now();
-    startedAt = new Date().toISOString();
-    await updateReviewStatus(reviewId, "aggregating", { traces });
+    const agentResults = await trackStep(traces, "scanning", () =>
+      runAgents(dispatchPlans, { reviewId, listing }),
+    );
 
-    const decision = aggregateResults(agentResults);
-    const explanation = await explainDecision(decision, listing, agentResults);
-    traces.push(traceNode("aggregating", startedAt, start));
+    const { decision, explanation } = await trackStep(
+      traces,
+      "aggregating",
+      () => aggregateAndExplain(agentResults, listing),
+    );
 
-    // Persist verdict + violations in transaction
-    start = Date.now();
-    startedAt = new Date().toISOString();
-
-    await executeInTransaction(async (client) => {
-      await updateReviewVerdict(
-        reviewId,
-        decision.verdict,
-        decision.confidence,
-        explanation,
-        { traces },
-        client,
-      );
-
-      if (decision.violations.length > 0) {
-        await insertViolations(reviewId, decision.violations, client);
-      }
-    });
-
-    traces.push(traceNode("persist", startedAt, start));
-    await updateReviewVerdict(
-      reviewId,
-      decision.verdict,
-      decision.confidence,
-      explanation,
-      { traces },
+    await trackStep(traces, "persist", () =>
+      persistVerdict(reviewId, decision, explanation, { traces }),
     );
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    traces.push(
-      traceNode("error", new Date().toISOString(), Date.now(), errorMessage),
-    );
-
+    const message = err instanceof Error ? err.message : String(err);
     try {
-      await updateReviewStatus(reviewId, "failed", {
-        traces,
-        error: errorMessage,
-      });
+      await updateReviewStatus(reviewId, "failed", { traces, error: message });
     } catch {
       console.error(`Failed to update review ${reviewId} to failed status`);
     }
-
     throw err;
   }
 }

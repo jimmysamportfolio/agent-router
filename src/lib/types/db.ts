@@ -1,8 +1,6 @@
 export type ReviewStatus =
   | "pending"
   | "routing"
-  | "scanning"
-  | "aggregating"
   | "complete"
   | "escalated"
   | "failed";

@@ -4,7 +4,6 @@ import type { ListingRow, Severity, Verdict } from "@/lib/types";
 export interface AgentInput {
   reviewId: string;
   listing: ListingRow;
-  relevantPolicies: PolicyMatch[];
 }
 
 /** A policy chunk matched by vector search */

@@ -1,15 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { toJSONSchema, type ZodType } from "zod";
 import { ConfigError } from "@/lib/errors";
-import { CircuitBreaker } from "@/server/pipeline/guardrails/circuit-breaker";
 import { redactPersonalInformation } from "@/server/pipeline/guardrails/redactor";
 
 const MODEL = "claude-sonnet-4-5-20250929";
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
 const TIMEOUT_MS = 60_000;
-
-const circuitBreaker = new CircuitBreaker();
 
 let client: Anthropic | undefined;
 
@@ -57,15 +54,13 @@ export async function callClaude(
     ? userPrompt
     : redactPersonalInformation(userPrompt);
 
-  const response = await circuitBreaker.execute(() =>
-    withRetry(() =>
-      getClient().messages.create({
-        model: MODEL,
-        max_tokens: options?.maxTokens ?? 1024,
-        system: systemPrompt,
-        messages: [{ role: "user", content: redactedUser }],
-      }),
-    ),
+  const response = await withRetry(() =>
+    getClient().messages.create({
+      model: MODEL,
+      max_tokens: options?.maxTokens ?? 1024,
+      system: systemPrompt,
+      messages: [{ role: "user", content: redactedUser }],
+    }),
   );
 
   const block = response.content[0];
@@ -87,23 +82,21 @@ export async function callClaudeStructured<T>(
     : redactPersonalInformation(userPrompt);
   const jsonSchema = zodToJsonSchema(schema);
 
-  const response = await circuitBreaker.execute(() =>
-    withRetry(() =>
-      getClient().messages.create({
-        model: MODEL,
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: [{ role: "user", content: redactedUser }],
-        tools: [
-          {
-            name: toolName,
-            description: "Submit the structured analysis result",
-            input_schema: jsonSchema as Anthropic.Tool["input_schema"],
-          },
-        ],
-        tool_choice: { type: "tool", name: toolName },
-      }),
-    ),
+  const response = await withRetry(() =>
+    getClient().messages.create({
+      model: MODEL,
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: [{ role: "user", content: redactedUser }],
+      tools: [
+        {
+          name: toolName,
+          description: "Submit the structured analysis result",
+          input_schema: jsonSchema as Anthropic.Tool["input_schema"],
+        },
+      ],
+      tool_choice: { type: "tool", name: toolName },
+    }),
   );
 
   const toolBlock = response.content.find(
