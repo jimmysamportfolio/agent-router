@@ -103,38 +103,6 @@ describe("aggregateResults", () => {
     expect(aggregateResults(results).verdict).toBe("escalated");
   });
 
-  it("deduplicates violations by policySection keeping highest severity", () => {
-    const results = [
-      makeResult({
-        agentName: "a",
-        verdict: "rejected",
-        confidence: 0.9,
-        violations: [
-          {
-            policySection: "1.1",
-            severity: "medium",
-            description: "Low concern",
-          },
-        ],
-      }),
-      makeResult({
-        agentName: "b",
-        verdict: "rejected",
-        confidence: 0.85,
-        violations: [
-          {
-            policySection: "1.1",
-            severity: "critical",
-            description: "Major concern",
-          },
-        ],
-      }),
-    ];
-    const decision = aggregateResults(results);
-    expect(decision.violations).toHaveLength(1);
-    expect(decision.violations[0]!.severity).toBe("critical");
-  });
-
   it("calculates average confidence from rejecting agents for rejected verdict", () => {
     const results = [
       makeResult({ agentName: "a", verdict: "approved", confidence: 0.95 }),

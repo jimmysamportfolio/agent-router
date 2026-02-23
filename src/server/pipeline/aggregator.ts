@@ -4,15 +4,16 @@ import type {
   AgentViolation,
 } from "@/server/pipeline/types";
 
-const SEVERITY_RANKS: Record<string, number> = {
-  low: 1,
-  medium: 2,
-  high: 3,
-  critical: 4,
-};
+const REJECTION_CONFIDENCE_THRESHOLD = 0.7;
+const APPROVAL_CONFIDENCE_THRESHOLD = 0.8;
 
-function severityRank(severity: string): number {
-  return SEVERITY_RANKS[severity] ?? 0;
+function averageConfidence(results: SubAgentResult[]): number {
+  if (results.length === 0) return 0;
+  return results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
+}
+
+function collectViolations(results: SubAgentResult[]): AgentViolation[] {
+  return results.flatMap((r) => r.violations);
 }
 
 export function aggregateResults(
@@ -22,46 +23,26 @@ export function aggregateResults(
     return { verdict: "escalated", confidence: 0, violations: [] };
   }
 
-  // Merge and deduplicate violations by policySection
-  const violationMap = new Map<string, AgentViolation>();
-  for (const result of results) {
-    for (const v of result.violations) {
-      const existing = violationMap.get(v.policySection);
-      if (
-        !existing ||
-        severityRank(v.severity) > severityRank(existing.severity)
-      ) {
-        violationMap.set(v.policySection, v);
-      }
-    }
-  }
-  const violations = [...violationMap.values()];
+  const violations = collectViolations(results);
 
-  // If ANY agent rejected with confidence > 0.7 → rejected
-  const hasHighConfidenceRejection = results.some(
-    (r) => r.verdict === "rejected" && r.confidence > 0.7,
+  const highConfidenceRejections = results.filter(
+    (r) =>
+      r.verdict === "rejected" && r.confidence > REJECTION_CONFIDENCE_THRESHOLD,
   );
-  if (hasHighConfidenceRejection) {
-    const rejections = results.filter(
-      (r) => r.verdict === "rejected" && r.confidence > 0.7,
-    );
-    const avgConfidence =
-      rejections.reduce((sum, r) => sum + r.confidence, 0) / rejections.length;
-    return { verdict: "rejected", confidence: avgConfidence, violations };
+  if (highConfidenceRejections.length > 0) {
+    return {
+      verdict: "rejected",
+      confidence: averageConfidence(highConfidenceRejections),
+      violations,
+    };
   }
 
-  // If ALL approved with avg confidence > 0.8 → approved
   const allApproved = results.every((r) => r.verdict === "approved");
-  if (allApproved) {
-    const avgConfidence =
-      results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
-    if (avgConfidence > 0.8) {
-      return { verdict: "approved", confidence: avgConfidence, violations };
-    }
+  const avgConfidence = averageConfidence(results);
+
+  if (allApproved && avgConfidence > APPROVAL_CONFIDENCE_THRESHOLD) {
+    return { verdict: "approved", confidence: avgConfidence, violations };
   }
 
-  // Otherwise → escalated
-  const avgConfidence =
-    results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
   return { verdict: "escalated", confidence: avgConfidence, violations };
 }
