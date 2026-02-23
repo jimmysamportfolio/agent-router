@@ -5,6 +5,9 @@ export type {
   ListingRow,
   ReviewRow,
   ViolationRow,
+  TenantRow,
+  AgentConfigRow,
+  TenantPolicyChunkRow,
 } from "./db";
 
 export type {
