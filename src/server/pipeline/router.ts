@@ -1,63 +1,62 @@
-import { z } from "zod";
-import { callClaudeStructured } from "@/server/pipeline/llm";
 import { embedTexts } from "@/lib/utils/embedding";
-import { searchPoliciesByEmbedding } from "@/lib/db/queries/policies";
+import { getActiveAgentConfigsByTenant } from "@/lib/db/queries/agent-configs";
+import { searchTenantPoliciesByEmbedding } from "@/lib/db/queries/tenant-policies";
 import type { ListingRow } from "@/lib/types";
-import type { PolicyMatch } from "@/server/pipeline/types";
+import type {
+  AgentConfig,
+  AgentDispatchPlan,
+  AgentOptions,
+  PolicyMatch,
+} from "@/server/pipeline/types";
+import type { AgentConfigRow } from "@/lib/types";
 
-const CATEGORIES = [
-  "prohibited_items",
-  "disintermediation",
-  "health_claims",
-  "counterfeit",
-  "quality_standards",
-] as const;
-
-const classificationSchema = z.object({
-  categories: z.array(z.enum(CATEGORIES)),
-});
-
-const SYSTEM_PROMPT = `You are a marketplace listing classifier. Given a listing's title, description, and category, identify which risk categories apply.
-
-Available categories:
-- prohibited_items: weapons, drugs, hazmat, stolen goods, human remains, protected wildlife
-- disintermediation: attempts to move transactions off-platform (sharing contact info, mentioning Venmo/PayPal/etc)
-- health_claims: medical claims, FDA references, supplement claims, therapeutic claims
-- counterfeit: brand misuse, suspiciously low prices for branded goods, trademark issues
-- quality_standards: title/description accuracy, image issues, pricing manipulation
-
-Return ALL categories that could be relevant. When in doubt, include the category.`;
-
-export interface RouteResult {
-  categories: string[];
-  relevantPolicies: PolicyMatch[];
+function toAgentConfig(row: AgentConfigRow): AgentConfig {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    name: row.name,
+    displayName: row.display_name,
+    systemPromptTemplate: row.system_prompt_template,
+    policySourceFiles: row.policy_source_files,
+    options: row.options as AgentOptions,
+  };
 }
 
-export async function routeReview(listing: ListingRow): Promise<RouteResult> {
-  const userPrompt = `Title: ${listing.title}\nDescription: ${listing.description}\nCategory: ${listing.category}`;
+export async function planAgentDispatch(
+  listing: ListingRow,
+  tenantId: string,
+): Promise<AgentDispatchPlan[]> {
+  const configRows = await getActiveAgentConfigsByTenant(tenantId);
+  if (configRows.length === 0) return [];
 
-  // Classify listing into risk categories
-  const classification = await callClaudeStructured(
-    SYSTEM_PROMPT,
-    userPrompt,
-    classificationSchema,
-    "classify_listing",
-  );
-
-  // Embed listing text for policy search
   const searchText = `${listing.title} ${listing.description}`;
   const [embedding] = await embedTexts([searchText]);
   if (!embedding) {
-    return { categories: classification.categories, relevantPolicies: [] };
+    return configRows.map((row) => ({
+      agentConfig: toAgentConfig(row),
+      relevantPolicies: [],
+    }));
   }
 
-  // Search for relevant policy chunks
-  const results = await searchPoliciesByEmbedding(embedding, 10);
-  const relevantPolicies: PolicyMatch[] = results.map((r) => ({
-    sourceFile: r.source_file,
-    content: r.content,
-    similarity: r.similarity,
-  }));
+  const plans = await Promise.all(
+    configRows.map(async (row): Promise<AgentDispatchPlan> => {
+      const results = await searchTenantPoliciesByEmbedding(
+        tenantId,
+        embedding,
+        row.policy_source_files,
+        10,
+      );
+      const relevantPolicies: PolicyMatch[] = results.map((r) => ({
+        sourceFile: r.source_file,
+        content: r.content,
+        similarity: r.similarity,
+      }));
+      return {
+        agentConfig: toAgentConfig(row),
+        relevantPolicies,
+      };
+    }),
+  );
 
-  return { categories: classification.categories, relevantPolicies };
+  return plans;
 }

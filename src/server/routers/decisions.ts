@@ -2,16 +2,20 @@ import { TRPCError } from "@trpc/server";
 import { router, publicProcedure } from "@/server/trpc";
 import { submitListingSchema, reviewIdSchema } from "@/lib/validation";
 import { executeInTransaction } from "@/lib/db/pool";
-import { insertListing } from "@/lib/db/queries/listings";
+import { insertListing, getListingById } from "@/lib/db/queries/listings";
 import { insertReview, getReviewById } from "@/lib/db/queries/reviews";
+import { DEFAULT_TENANT_ID } from "@/lib/db/queries/tenants";
 
 export const decisionsRouter = router({
   submit: publicProcedure
     .input(submitListingSchema)
     .mutation(async ({ input, ctx }) => {
+      const tenantId = input.tenantId ?? DEFAULT_TENANT_ID;
+
       const { listing, review } = await executeInTransaction(async (client) => {
         const newListing = await insertListing(
           {
+            tenantId,
             title: input.title,
             description: input.description,
             category: input.category,
@@ -27,6 +31,7 @@ export const decisionsRouter = router({
       await ctx.enqueueReview({
         reviewId: review.id,
         listingId: listing.id,
+        tenantId,
       });
 
       return { reviewId: review.id };
@@ -49,9 +54,11 @@ export const decisionsRouter = router({
         Date.now() - review.created_at.getTime() > STALE_THRESHOLD_MS;
 
       if (isStuck) {
+        const listing = await getListingById(review.listing_id);
         await ctx.enqueueReview({
           reviewId: review.id,
           listingId: review.listing_id,
+          tenantId: listing?.tenant_id ?? DEFAULT_TENANT_ID,
         });
       }
 

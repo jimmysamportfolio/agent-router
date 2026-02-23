@@ -7,10 +7,8 @@ import { getListingById } from "@/lib/db/queries/listings";
 import { insertViolations } from "@/lib/db/queries/violations";
 import { executeInTransaction } from "@/lib/db/pool";
 import { DatabaseError } from "@/lib/errors";
-import { routeReview } from "@/server/pipeline/router";
-import { checkProhibited } from "@/server/pipeline/agents/prohibited";
-import { checkDisintermediation } from "@/server/pipeline/agents/disintermediation";
-import { checkHealthClaims } from "@/server/pipeline/agents/health-claims";
+import { planAgentDispatch } from "@/server/pipeline/router";
+import { createPolicyAgent } from "@/server/pipeline/agents/factory";
 import { checkImages } from "@/server/pipeline/agents/image-analysis";
 import { aggregateResults } from "@/server/pipeline/aggregator";
 import { explainDecision } from "@/server/pipeline/explainer";
@@ -33,7 +31,10 @@ function traceNode(
   return trace;
 }
 
-export async function processReview(reviewId: string): Promise<void> {
+export async function processReview(
+  reviewId: string,
+  tenantId: string,
+): Promise<void> {
   const traces: NodeTrace[] = [];
 
   try {
@@ -50,15 +51,15 @@ export async function processReview(reviewId: string): Promise<void> {
 
     traces.push(traceNode("fetch", startedAt, start));
 
-    // Route
+    // Route — plan dynamic agent dispatch
     start = Date.now();
     startedAt = new Date().toISOString();
     await updateReviewStatus(reviewId, "routing", { traces });
 
-    const routeResult = await routeReview(listing);
+    const dispatchPlans = await planAgentDispatch(listing, tenantId);
     traces.push(traceNode("routing", startedAt, start));
 
-    // Scan with sub-agents
+    // Scan with dynamic agents + built-in image analysis
     start = Date.now();
     startedAt = new Date().toISOString();
     await updateReviewStatus(reviewId, "scanning", { traces });
@@ -66,13 +67,15 @@ export async function processReview(reviewId: string): Promise<void> {
     const agentInput: AgentInput = {
       reviewId,
       listing,
-      relevantPolicies: routeResult.relevantPolicies,
+      relevantPolicies: [],
     };
 
+    const dynamicAgentPromises = dispatchPlans.map((plan) =>
+      createPolicyAgent(plan.agentConfig, plan.relevantPolicies)(agentInput),
+    );
+
     const agentResults = await Promise.all([
-      checkProhibited(agentInput),
-      checkDisintermediation(agentInput),
-      checkHealthClaims(agentInput),
+      ...dynamicAgentPromises,
       checkImages(agentInput),
     ]);
     traces.push(traceNode("scanning", startedAt, start));

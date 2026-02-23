@@ -6,7 +6,7 @@ const provider = createQueueProvider();
 
 async function handleJob(data: ReviewJobData): Promise<void> {
   console.log(`[Worker] Processing review ${data.reviewId}`);
-  await processReview(data.reviewId);
+  await processReview(data.reviewId, data.tenantId);
   console.log(`[Worker] Completed review ${data.reviewId}`);
 }
 

@@ -7,6 +7,7 @@ export const REVIEW_QUEUE_NAME = "review-pipeline";
 export interface ReviewJobData {
   reviewId: string;
   listingId: string;
+  tenantId: string;
 }
 
 let reviewQueue: Queue | undefined;
