@@ -4,6 +4,8 @@ import { fileURLToPath } from "url";
 import { getPool } from "@/lib/db/pool";
 import { chunkPolicy, embedTexts } from "@/lib/utils/embedding";
 import { replaceAllPolicyChunks } from "@/lib/db/queries/policies";
+import { upsertTenantPolicyChunks } from "@/lib/db/queries/tenant-policies";
+import { DEFAULT_TENANT_ID } from "@/lib/db/queries/tenants";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,6 +33,11 @@ async function seed() {
   await replaceAllPolicyChunks(allChunks, embeddings);
 
   console.log(`Seeded ${allChunks.length} policy chunks.`);
+
+  console.log("Inserting into tenant_policy_chunks for default tenant...");
+  await upsertTenantPolicyChunks(DEFAULT_TENANT_ID, allChunks, embeddings);
+
+  console.log(`Seeded ${allChunks.length} tenant policy chunks.`);
   await getPool().end();
 }
 

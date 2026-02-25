@@ -2,76 +2,26 @@ import { query, executeInTransaction } from "@/lib/db/pool";
 import { ValidationError } from "@/lib/errors";
 import type { PolicyChunk } from "@/lib/utils/embedding";
 
-export async function upsertPolicyChunks(
-  chunks: PolicyChunk[],
-  embeddings: number[][],
-): Promise<void> {
-  validateChunksAndEmbeddings(chunks, embeddings);
+const PARAMS_PER_CHUNK = 5;
+const MAX_PG_PARAMS = 65535;
+const MAX_CHUNKS_PER_BATCH = Math.floor(MAX_PG_PARAMS / PARAMS_PER_CHUNK);
 
-  if (chunks.length === 0) return;
+const UPSERT_CONFLICT_SQL = `ON CONFLICT (source_file, chunk_index) DO UPDATE
+  SET content   = EXCLUDED.content,
+      embedding = EXCLUDED.embedding,
+      metadata  = EXCLUDED.metadata`;
+const DELETE_ALL_POLICY_CHUNKS_SQL = `DELETE FROM policy_chunks`;
+const SEARCH_POLICIES_BY_EMBEDDING_SQL = `WITH q AS (SELECT $1::vector AS v)
+  SELECT source_file, content, 1 - (embedding <=> q.v) AS similarity
+  FROM policy_chunks, q
+  ORDER BY embedding <=> q.v
+  LIMIT $2`;
 
-  await executeInTransaction(async (connection) => {
-    const { sql, params } = buildPolicyChunksInsert(chunks, embeddings);
-    await connection.query(
-      `${sql}
-       ON CONFLICT (source_file, chunk_index) DO UPDATE
-         SET content   = EXCLUDED.content,
-             embedding = EXCLUDED.embedding,
-             metadata  = EXCLUDED.metadata`,
-      params,
-    );
-  });
+interface PolicySearchRow {
+  source_file: string;
+  content: string;
+  similarity: number;
 }
-
-/** Atomically deletes all existing chunks and inserts the new ones. */
-export async function replaceAllPolicyChunks(
-  chunks: PolicyChunk[],
-  embeddings: number[][],
-): Promise<void> {
-  validateChunksAndEmbeddings(chunks, embeddings);
-
-  const seen = new Set<string>();
-  for (const chunk of chunks) {
-    const key = `${chunk.sourceFile}\0${chunk.chunkIndex}`;
-    if (seen.has(key)) {
-      throw new ValidationError(
-        `Duplicate (source_file, chunk_index) in input: ("${chunk.sourceFile}", ${chunk.chunkIndex})`,
-      );
-    }
-    seen.add(key);
-  }
-
-  await executeInTransaction(async (connection) => {
-    await connection.query("DELETE FROM policy_chunks");
-
-    if (chunks.length === 0) return;
-
-    const { sql, params } = buildPolicyChunksInsert(chunks, embeddings);
-    await connection.query(sql, params);
-  });
-}
-
-export async function searchPoliciesByEmbedding(
-  embedding: number[],
-  limit = 5,
-): Promise<{ source_file: string; content: string; similarity: number }[]> {
-  if (!Array.isArray(embedding) || embedding.length === 0) {
-    throw new ValidationError("embedding must be a non-empty array");
-  }
-
-  const vector = `[${embedding.join(",")}]`;
-  return query(
-    `WITH q AS (SELECT $1::vector AS v)
-     SELECT source_file, content,
-            1 - (embedding <=> q.v) AS similarity
-     FROM policy_chunks, q
-     ORDER BY embedding <=> q.v
-     LIMIT $2`,
-    [vector, limit],
-  );
-}
-
-// helpers
 
 function validateChunksAndEmbeddings(
   chunks: PolicyChunk[],
@@ -105,4 +55,85 @@ function buildPolicyChunksInsert(
        VALUES ${valuePlaceholders.join(", ")}`;
 
   return { sql, params };
+}
+
+function batchChunksAndEmbeddings(
+  chunks: PolicyChunk[],
+  embeddings: number[][],
+): { chunks: PolicyChunk[]; embeddings: number[][] }[] {
+  const batches: { chunks: PolicyChunk[]; embeddings: number[][] }[] = [];
+  for (let i = 0; i < chunks.length; i += MAX_CHUNKS_PER_BATCH) {
+    batches.push({
+      chunks: chunks.slice(i, i + MAX_CHUNKS_PER_BATCH),
+      embeddings: embeddings.slice(i, i + MAX_CHUNKS_PER_BATCH),
+    });
+  }
+  return batches;
+}
+
+export async function upsertPolicyChunks(
+  chunks: PolicyChunk[],
+  embeddings: number[][],
+): Promise<void> {
+  validateChunksAndEmbeddings(chunks, embeddings);
+
+  if (chunks.length === 0) return;
+
+  await executeInTransaction(async (connection) => {
+    for (const batch of batchChunksAndEmbeddings(chunks, embeddings)) {
+      const { sql, params } = buildPolicyChunksInsert(
+        batch.chunks,
+        batch.embeddings,
+      );
+      await connection.query(`${sql}\n       ${UPSERT_CONFLICT_SQL}`, params);
+    }
+  });
+}
+
+/** Atomically deletes all existing chunks and inserts the new ones. */
+export async function replaceAllPolicyChunks(
+  chunks: PolicyChunk[],
+  embeddings: number[][],
+): Promise<void> {
+  validateChunksAndEmbeddings(chunks, embeddings);
+
+  const seen = new Set<string>();
+  for (const chunk of chunks) {
+    const key = `${chunk.sourceFile}\0${chunk.chunkIndex}`;
+    if (seen.has(key)) {
+      throw new ValidationError(
+        `Duplicate (source_file, chunk_index) in input: ("${chunk.sourceFile}", ${chunk.chunkIndex})`,
+      );
+    }
+    seen.add(key);
+  }
+
+  await executeInTransaction(async (connection) => {
+    await connection.query(DELETE_ALL_POLICY_CHUNKS_SQL);
+
+    if (chunks.length === 0) return;
+
+    for (const batch of batchChunksAndEmbeddings(chunks, embeddings)) {
+      const { sql, params } = buildPolicyChunksInsert(
+        batch.chunks,
+        batch.embeddings,
+      );
+      await connection.query(sql, params);
+    }
+  });
+}
+
+export async function searchPoliciesByEmbedding(
+  embedding: number[],
+  limit = 5,
+): Promise<PolicySearchRow[]> {
+  if (!Array.isArray(embedding) || embedding.length === 0) {
+    throw new ValidationError("embedding must be a non-empty array");
+  }
+
+  const vector = `[${embedding.join(",")}]`;
+  return query<PolicySearchRow>(SEARCH_POLICIES_BY_EMBEDDING_SQL, [
+    vector,
+    limit,
+  ]);
 }
