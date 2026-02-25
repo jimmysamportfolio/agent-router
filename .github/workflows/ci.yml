@@ -17,8 +17,9 @@ jobs:
           node-version: 20
           cache: npm
 
-      - run: npm install --package-lock-only --ignore-scripts
       - run: npm ci
+      - name: Install platform-specific optional deps
+        run: npm install --no-save --ignore-scripts @rollup/rollup-linux-x64-gnu
 
       - name: Lint
         run: npm run lint
