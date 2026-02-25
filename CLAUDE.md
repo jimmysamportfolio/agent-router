@@ -10,6 +10,8 @@ Policy compliance system for marketplace listings. LLM agents (Claude) + vector 
 - **SQL**: always parameterized, use `query<T>()` / `queryOne<T>()` / `executeInTransaction()`
 - **Validation**: Zod schemas in `src/lib/validation.ts`, shared client + server
 - **API routes**: thin handlers in `app/api/`, logic in `server/`
+- **Explicit type Returns** Always create a typed object first before you return it
+
 
 ## Commands
 

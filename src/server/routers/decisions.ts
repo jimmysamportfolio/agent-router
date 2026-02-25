@@ -6,6 +6,8 @@ import { insertListing, getListingById } from "@/lib/db/queries/listings";
 import { insertReview, getReviewById } from "@/lib/db/queries/reviews";
 import { DEFAULT_TENANT_ID } from "@/lib/db/queries/tenants";
 
+const STALE_THRESHOLD_MS = 2 * 60 * 1000;
+
 export const decisionsRouter = router({
   submit: publicProcedure
     .input(submitListingSchema)
@@ -48,7 +50,6 @@ export const decisionsRouter = router({
         });
       }
 
-      const STALE_THRESHOLD_MS = 2 * 60 * 1000;
       const isStuck =
         review.status === "pending" &&
         Date.now() - review.created_at.getTime() > STALE_THRESHOLD_MS;

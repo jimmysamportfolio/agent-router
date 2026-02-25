@@ -9,7 +9,6 @@ import { executeInTransaction } from "@/lib/db/pool";
 import { DatabaseError } from "@/lib/errors";
 import { planAgentDispatch } from "@/server/pipeline/router";
 import { createPolicyAgent } from "@/server/pipeline/agents/factory";
-import { checkImages } from "@/server/pipeline/agents/image-analysis";
 import { aggregateResults } from "@/server/pipeline/aggregator";
 import { explainDecision } from "@/server/pipeline/explainer";
 import { TokenTracker } from "@/server/pipeline/guardrails/budget";
@@ -18,9 +17,13 @@ import type {
   AgentDispatchPlan,
   AgentInput,
   AggregatedDecision,
+  AggregationResult,
   NodeTrace,
+  ReviewWithListing,
   SubAgentResult,
 } from "@/server/pipeline/types";
+
+// ── Tracing ─────────────────────────────────────────────────────────
 
 async function trackStep<T>(
   traces: NodeTrace[],
@@ -31,60 +34,71 @@ async function trackStep<T>(
   const startMs = Date.now();
   try {
     const result = await fn();
-    traces.push({
-      nodeName: name,
-      startedAt,
-      durationMs: Date.now() - startMs,
-    });
-    return result;
-  } catch (err) {
-    const trace: NodeTrace = {
+    const successTrace: NodeTrace = {
       nodeName: name,
       startedAt,
       durationMs: Date.now() - startMs,
     };
-    trace.error = err instanceof Error ? err.message : String(err);
-    traces.push(trace);
+    traces.push(successTrace);
+    return result;
+  } catch (err) {
+    const errorTrace: NodeTrace = {
+      nodeName: name,
+      startedAt,
+      durationMs: Date.now() - startMs,
+      error: err instanceof Error ? err.message : String(err),
+    };
+    traces.push(errorTrace);
     throw err;
   }
 }
 
 // ── Pipeline steps ──────────────────────────────────────────────────
 
-async function fetchReviewAndListing(reviewId: string) {
+async function fetchReviewAndListing(
+  reviewId: string,
+): Promise<ReviewWithListing> {
   const review = await getReviewById(reviewId);
-  if (!review) throw new DatabaseError(`Review not found: ${reviewId}`);
+  if (!review) {
+    throw new DatabaseError(`Review not found: ${reviewId}`);
+  }
 
   const listing = await getListingById(review.listing_id);
-  if (!listing)
+  if (!listing) {
     throw new DatabaseError(`Listing not found: ${review.listing_id}`);
+  }
 
-  return { review, listing };
+  const result: ReviewWithListing = { review, listing };
+  return result;
 }
 
 async function runAgents(
   dispatchPlans: AgentDispatchPlan[],
   input: AgentInput,
 ): Promise<SubAgentResult[]> {
-  const policyAgents = dispatchPlans.map((plan) =>
-    createPolicyAgent(plan.agentConfig, plan.relevantPolicies)(input),
+  const results: SubAgentResult[] = await Promise.all(
+    dispatchPlans.map((plan) =>
+      createPolicyAgent(plan.agentConfig, plan.relevantPolicies)(input),
+    ),
   );
-  return Promise.all([...policyAgents, checkImages(input)]);
+  return results;
 }
 
 async function aggregateAndExplain(
-  results: SubAgentResult[],
+  agentResults: SubAgentResult[],
   listing: ListingRow,
   tokenTracker?: TokenTracker,
-) {
-  const decision = aggregateResults(results);
-  const explanation = await explainDecision(
+): Promise<AggregationResult> {
+  const decision = aggregateResults(agentResults);
+  const explanation = await explainDecision({
     decision,
     listing,
-    results,
+    agentResults,
     tokenTracker,
-  );
-  return { decision, explanation };
+  });
+
+  const result: AggregationResult = { decision, explanation };
+  return result;
 }
 
 async function persistVerdict(
@@ -142,9 +156,12 @@ export async function processReview(
       persistVerdict(reviewId, decision, explanation, { traces }),
     );
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const errorMessage = err instanceof Error ? err.message : String(err);
     try {
-      await updateReviewStatus(reviewId, "failed", { traces, error: message });
+      await updateReviewStatus(reviewId, "failed", {
+        traces,
+        error: errorMessage,
+      });
     } catch {
       console.error(`Failed to update review ${reviewId} to failed status`);
     }

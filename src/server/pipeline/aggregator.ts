@@ -1,3 +1,4 @@
+import { InvariantError } from "@/lib/errors";
 import type {
   SubAgentResult,
   AggregatedDecision,
@@ -7,12 +8,13 @@ import type {
 const REJECTION_CONFIDENCE_THRESHOLD = 0.7;
 const APPROVAL_CONFIDENCE_THRESHOLD = 0.8;
 
-function averageConfidence(results: SubAgentResult[]): number {
+function calculateAverageConfidence(results: SubAgentResult[]): number {
   if (results.length === 0) return 0;
-  return results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
+  const totalConfidence = results.reduce((sum, r) => sum + r.confidence, 0);
+  return totalConfidence / results.length;
 }
 
-function collectViolations(results: SubAgentResult[]): AgentViolation[] {
+function collectAllViolations(results: SubAgentResult[]): AgentViolation[] {
   return results.flatMap((r) => r.violations);
 }
 
@@ -20,29 +22,42 @@ export function aggregateResults(
   results: SubAgentResult[],
 ): AggregatedDecision {
   if (results.length === 0) {
-    return { verdict: "escalated", confidence: 0, violations: [] };
+    throw new InvariantError(
+      "Cannot aggregate empty results — all agents failed",
+    );
   }
 
-  const violations = collectViolations(results);
+  const violations = collectAllViolations(results);
 
   const highConfidenceRejections = results.filter(
     (r) =>
       r.verdict === "rejected" && r.confidence > REJECTION_CONFIDENCE_THRESHOLD,
   );
   if (highConfidenceRejections.length > 0) {
-    return {
+    const rejectedDecision: AggregatedDecision = {
       verdict: "rejected",
-      confidence: averageConfidence(highConfidenceRejections),
+      confidence: calculateAverageConfidence(highConfidenceRejections),
       violations,
     };
+    return rejectedDecision;
   }
 
   const allApproved = results.every((r) => r.verdict === "approved");
-  const avgConfidence = averageConfidence(results);
+  const averageConfidence = calculateAverageConfidence(results);
 
-  if (allApproved && avgConfidence > APPROVAL_CONFIDENCE_THRESHOLD) {
-    return { verdict: "approved", confidence: avgConfidence, violations };
+  if (allApproved && averageConfidence > APPROVAL_CONFIDENCE_THRESHOLD) {
+    const approvedDecision: AggregatedDecision = {
+      verdict: "approved",
+      confidence: averageConfidence,
+      violations,
+    };
+    return approvedDecision;
   }
 
-  return { verdict: "escalated", confidence: avgConfidence, violations };
+  const escalatedDecision: AggregatedDecision = {
+    verdict: "escalated",
+    confidence: averageConfidence,
+    violations,
+  };
+  return escalatedDecision;
 }

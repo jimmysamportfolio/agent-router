@@ -81,10 +81,10 @@ describe("aggregateResults", () => {
     expect(decision.verdict).toBe("escalated");
   });
 
-  it("returns escalated for empty results", () => {
-    const decision = aggregateResults([]);
-    expect(decision.verdict).toBe("escalated");
-    expect(decision.confidence).toBe(0);
+  it("throws on empty results", () => {
+    expect(() => aggregateResults([])).toThrow(
+      "Cannot aggregate empty results",
+    );
   });
 
   it("returns escalated when rejection confidence is exactly 0.7 (exclusive boundary)", () => {

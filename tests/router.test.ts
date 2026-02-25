@@ -77,23 +77,22 @@ describe("planAgentDispatch", () => {
     expect(plans[1]!.agentConfig.name).toBe("agent-b");
   });
 
-  it("returns empty array when no active configs", async () => {
+  it("throws error when no active configs", async () => {
     mockGetConfigs.mockResolvedValue([]);
 
-    const plans = await planAgentDispatch(makeListing(), "tenant-1");
-
-    expect(plans).toHaveLength(0);
+    await expect(planAgentDispatch(makeListing(), "tenant-1")).rejects.toThrow(
+      "No active agent configurations for tenant: tenant-1",
+    );
     expect(mockEmbed).not.toHaveBeenCalled();
   });
 
-  it("returns plans with empty policies when embedding fails", async () => {
+  it("throws error when embedding fails", async () => {
     mockGetConfigs.mockResolvedValue([makeConfigRow()]);
     mockEmbed.mockResolvedValue([]);
 
-    const plans = await planAgentDispatch(makeListing(), "tenant-1");
-
-    expect(plans).toHaveLength(1);
-    expect(plans[0]!.relevantPolicies).toEqual([]);
+    await expect(planAgentDispatch(makeListing(), "tenant-1")).rejects.toThrow(
+      "Failed to generate embedding for listing",
+    );
     expect(mockSearch).not.toHaveBeenCalled();
   });
 

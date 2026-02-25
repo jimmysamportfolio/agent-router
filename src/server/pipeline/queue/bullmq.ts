@@ -7,6 +7,10 @@ import type {
   QueueWorkerHandle,
 } from "@/server/pipeline/queue/interface";
 
+const WORKER_CONCURRENCY = 3;
+const REMOVE_ON_COMPLETE = 100;
+const REMOVE_ON_FAIL = 500;
+
 export class BullMQProvider implements QueueProvider {
   private queueConnection: IORedis | undefined;
   private queue: Queue | undefined;
@@ -25,8 +29,8 @@ export class BullMQProvider implements QueueProvider {
     this.queue = new Queue(REVIEW_QUEUE_NAME, {
       connection: this.getQueueConnection() as ConnectionOptions,
       defaultJobOptions: {
-        removeOnComplete: 100,
-        removeOnFail: 500,
+        removeOnComplete: REMOVE_ON_COMPLETE,
+        removeOnFail: REMOVE_ON_FAIL,
       },
     });
     return this.queue;
@@ -50,7 +54,10 @@ export class BullMQProvider implements QueueProvider {
     const worker = new Worker<ReviewJobData>(
       REVIEW_QUEUE_NAME,
       async (job) => handler(job.data),
-      { connection: workerConnection as ConnectionOptions, concurrency: 3 },
+      {
+        connection: workerConnection as ConnectionOptions,
+        concurrency: WORKER_CONCURRENCY,
+      },
     );
 
     worker.on("failed", (job, err) => {
