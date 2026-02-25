@@ -5,222 +5,114 @@ description: TypeScript project architecture, folder structure, and OOP design p
 
 # TypeScript Architecture & Production Patterns
 
-This skill provides conventions for organizing TypeScript projects and applying
-OOP design patterns that produce maintainable, testable, production-quality code.
-
-Use this when helping users scaffold new projects, refactor existing ones, or
-answer questions about where things should go and how they should be structured.
-
 ## Core Philosophy
 
-Three ideas drive every decision in this skill:
-
-1. **Organize by domain, not by technical role.** Group files by what business
-   concept they serve (orders, users, payments), not by what they are (all
-   services in one folder, all types in another). This means changes to one
+1. **Organize by domain, not by technical role.** Group files by business
+   concept (orders, users, payments), not by what they are. Changes to one
    feature touch one folder.
 
 2. **Depend on abstractions, inject dependencies.** Classes accept interfaces
-   via their constructor, not concrete implementations. This makes everything
-   testable and swappable.
+   via their constructor, not concrete implementations.
 
 3. **Encapsulate at every level.** Classes use access modifiers. Modules use
-   barrel exports. Features hide their internals. The less surface area
-   exposed, the easier the codebase is to change.
+   barrel exports. Features hide their internals.
 
-## When to Apply What
+## Reference Files
 
-Not every project needs the full structure. Scale conventions to project size:
+Read the relevant reference before starting work:
 
-- **Small (< 10 files):** Flat `src/` with types alongside code. No features folder needed.
-- **Medium (10–30 files):** Introduce `features/`, `lib/`, and `types/`. Add barrel exports.
-- **Large (50+ files):** Full feature-based architecture with repositories, services, validators, and dependency injection.
-
-For framework-specific folder structures (Next.js, Express, etc.), see
-`references/folder-structures.md`. Read it before scaffolding a project.
+- `references/folder-structures.md` — Framework-specific layouts (Next.js, Express, SPA, tRPC). Read before scaffolding.
+- `references/error-handling.md` — Base error class template, error structure, centralized handler.
+- `references/documentation.md` — TSDoc conventions, what to document vs skip.
+- `references/database.md` — Connection pool, base repository, transactions, migrations.
 
 ## The Seven Principles
 
-Apply these principles in TypeScript using the patterns below. For detailed
-code examples of each, see `references/patterns.md`.
+1. **Cohesion / SRP** — One class, one reason to change. Services own business logic. Repositories own data access. Validators own input schemas. Components own rendering.
 
-### 1. Cohesion / Single Responsibility
+2. **Encapsulation** — Use `private`, `protected`, `readonly`, and barrel exports to hide internals. If the consumer doesn't need it, don't expose it.
 
-One class, one reason to change. One file, one job.
+3. **Loose Coupling** — Depend on interfaces, not implementations. Start with interfaces; only use abstract classes when subclasses need shared logic.
 
-- Services contain business logic and orchestrate other services/repos
-- Repositories handle database access exclusively
-- Validators define input schemas (Zod is the go-to)
-- Components render UI; hooks manage client state and data fetching
-- Utility functions are pure, stateless helpers
+4. **Reusability** — Use generics for type-safe reusable structures. Use the strategy pattern when behavior varies. Prefer composition over inheritance.
 
-When a class starts doing two things, split it. When a file exceeds ~200 lines,
-that's usually a sign it has multiple responsibilities.
+5. **Portability** — Abstract platform-specific concerns (LLM clients, caches, queues, file storage) behind interfaces.
 
-### 2. Encapsulation & Abstraction
+6. **Defensibility** — Value objects with validation, discriminated unions with exhaustive switches, `readonly`/`as const`, validated env config, `strict: true`.
 
-TypeScript has stronger encapsulation tools than most languages — use them.
+7. **Testability** — Inject dependencies via constructor, mock at the interface level, test at boundaries. Follows naturally from principles 2–5.
 
-- **`private`** for internal state no one else should touch
-- **`protected`** for state subclasses need but outside code doesn't
-- **`readonly`** for values that shouldn't change after construction
-- **Barrel exports** (`index.ts`) to hide feature internals from other modules
+## File & Type Placement
 
-The guiding question: "Does the consumer need to know about this?" If not,
-don't expose it.
+Types live as close to their consumers as possible:
 
-### 3. Loose Coupling & Modularity
+| Type | Location |
+|------|----------|
+| Domain-specific (Order, User) | `features/<domain>/types.ts` |
+| Shared contracts (ApiResponse) | `types/api.ts` |
+| Shared primitives (ID, Timestamp) | `types/common.ts` |
+| Infrastructure contracts (Cache) | `lib/<concern>/<n>.interface.ts` |
+| DB row types | `types/db.ts` or within feature |
 
-Depend on interfaces, not implementations. This is the most impactful pattern
-for testability and flexibility.
+Code placement:
 
-```typescript
-// Define a contract
-interface PaymentGateway {
-  charge(amount: number): Promise<PaymentResult>;
-}
+| Code | Location |
+|------|----------|
+| Business logic | `features/<domain>/services/` |
+| Data access | `features/<domain>/repositories/` or `lib/db/repositories/` |
+| Domain UI components | `features/<domain>/components/` |
+| Shared UI components | `components/ui/` |
+| Domain hooks | `features/<domain>/hooks/` |
+| Domain errors | `features/<domain>/errors.ts` |
+| Shared errors | `lib/errors/` |
+| Shared utilities | `lib/utils/` |
+| Validation schemas | `features/<domain>/validators/` |
 
-// Inject it — don't instantiate it
-class OrderService {
-  constructor(private payment: PaymentGateway) {}
-}
-```
+## Barrel Exports & Feature Boundaries
 
-**Interface vs Abstract Class decision:**
-- Start with an interface (pure contract, zero runtime cost, multiple implementation)
-- Only use an abstract class when you have shared logic subclasses should inherit
-- A class can implement many interfaces but extend only one class
-
-### 4. Reusability & Extensibility
-
-- Use **generics** for type-safe reusable structures (Result<T>, Repository<T>)
-- Use the **strategy pattern** when behavior varies (pricing strategies, notification channels, auth providers)
-- Prefer **composition over inheritance** — inject behavior rather than extending base classes
-
-### 5. Portability
-
-Abstract platform-specific concerns behind interfaces so business logic
-doesn't depend on any specific runtime, database, or external service.
-
-Common boundaries to abstract: LLM clients, cache layers, queue systems,
-file storage, email/notification providers.
-
-### 6. Defensibility
-
-Make invalid states unrepresentable and fail fast at boundaries.
-
-- **Value objects** with private constructors and factory methods that validate
-- **Discriminated unions** with exhaustive switch statements
-- **`readonly` and `as const`** to prevent accidental mutation
-- **Validated environment config** (Zod schema parsed at startup)
-- **`strict: true`** in tsconfig.json — always
-
-### 7. Testability
-
-If you followed principles 2–5, testability comes almost for free:
-
-- Inject dependencies via constructor → mock at the interface level
-- No mocking library needed — just implement the interface with a test double
-- Test services in isolation by providing fake repositories
-- Test at the boundary: validate inputs, assert outputs, don't test private methods
-
-## File & Type Placement Rules
-
-These rules answer the #1 question: "Where does this go?"
-
-**Types live close to their consumers:**
-
-| Type | Location | Reason |
-|------|----------|--------|
-| Domain-specific (Order, User) | `features/<domain>/types.ts` | Co-located with its feature |
-| Shared contracts (ApiResponse, PaginatedList) | `types/api.ts` | Used across many features |
-| Shared primitives (ID, Timestamp) | `types/common.ts` | Universal building blocks |
-| Infrastructure contracts (Cache, Logger) | `lib/<concern>/<name>.interface.ts` | Not domain-specific |
-| DB row types | `types/db.ts` or within feature | Depends on how many features use them |
-
-**Code placement:**
-
-| Code | Location | Reason |
-|------|----------|--------|
-| Business logic | `features/<domain>/services/` | Domain-specific orchestration |
-| Data access | `lib/db/repositories/` or `features/<domain>/repositories/` | Depends on reuse |
-| UI components (domain-specific) | `features/<domain>/components/` | Co-located with feature |
-| UI components (shared/generic) | `components/ui/` | Reusable primitives |
-| Hooks (domain-specific) | `features/<domain>/hooks/` | Co-located with feature |
-| Utilities (domain-agnostic) | `lib/utils/` | Shared infrastructure |
-| Validation schemas | `features/<domain>/validators/` | Domain boundary |
-
-## Barrel Export Convention
-
-Every feature module must have an `index.ts` that controls its public API.
-Other features import ONLY from this barrel — never reach into internals.
+Every feature has an `index.ts` that controls its public API. Other features
+import only from this barrel — never reach into internals.
 
 ```typescript
-// features/orders/index.ts
-export type { Order, OrderStatus, CreateOrderInput } from "./types";
+// features/orders/index.ts — public API
+export type { Order, OrderStatus } from "./types";
 export { OrderService } from "./services/order.service";
 export { OrderCard } from "./components/OrderCard";
-export { useOrders } from "./hooks/useOrders";
-// Don't export repositories, internal utils, or validators
-// unless other features genuinely need them
 ```
 
 ```typescript
-// ✅ import from barrel
-import { OrderService, type Order } from "@/features/orders";
-
-// ❌ reaching into internals
-import { OrderService } from "@/features/orders/services/order.service";
+// ✅ features/payments/ → imports from features/orders/index.ts
+// ✅ features/payments/ → imports from lib/db/client.ts
+// ❌ features/payments/ → imports from features/orders/repositories/order.repository.ts
 ```
 
-## Feature Independence Rules
+## Scaling
 
-Features communicate through their public APIs (barrel exports) or shared types:
+Scale conventions to project size:
 
-- ✅ `features/orders/` → imports from `features/users/index.ts`
-- ✅ `features/orders/` → imports from `lib/db/client.ts`
-- ✅ `features/orders/` → imports from `types/common.ts`
-- ❌ `features/orders/` → imports from `features/users/repositories/user.repository.ts`
+- **Small (< 10 files):** Flat `src/` with types alongside code. No features folder.
+- **Medium (10–30 files):** Introduce `features/`, `lib/`, and `types/`. Add barrel exports.
+- **Large (50+ files):** Full feature-based architecture with repositories, services, validators, and DI.
 
-## Scaling Guidelines
+**New feature?** Ask: "Is this a distinct domain concept with its own data
+and logic?" Yes → feature. Pure utility → `lib/`. Generic UI → `components/ui/`.
 
-**When to create a new feature module:** Ask "Is this a distinct domain concept
-with its own data, logic, and potentially its own UI?" If yes → new feature.
-If it's a pure utility → `lib/`. If it's a generic UI element → `components/ui/`.
+**Feature too big (20+ files)?** Split into sub-features with a single barrel:
 
-**When a feature outgrows itself (20+ files):** Split into sub-features:
 ```
 features/orders/
-├── core/          # CRUD, types, repository
-├── fulfillment/   # shipping, tracking
-├── returns/       # return requests, refunds
-└── index.ts       # still one public API
+├── core/
+├── fulfillment/
+├── returns/
+└── index.ts
 ```
 
-**Cross-feature shared logic:** If it has business rules → new feature or shared
-feature. If it's purely technical → `lib/`.
-
-## Path Aliases
-
-Always configure `@/` in tsconfig.json:
-
-```json
-{
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": { "@/*": ["./src/*"] }
-  }
-}
-```
-
-## Quick Checklist
-
-Before finalizing any structure, verify:
+## Checklist
 
 - [ ] Every feature has a barrel `index.ts`
 - [ ] No cross-feature internal imports
-- [ ] Types are co-located with their feature (not in a global dumping ground)
+- [ ] Types co-located with their feature
 - [ ] Services depend on interfaces, not concrete classes
-- [ ] Pages/routes are thin — they delegate to feature services
-- [ ] `strict: true` is set in tsconfig.json
-- [ ] Path aliases are configured
+- [ ] Pages/routes are thin — delegate to feature services
+- [ ] `strict: true` in tsconfig.json
+- [ ] `@/*` path alias configured (`"paths": { "@/*": ["./src/*"] }`)

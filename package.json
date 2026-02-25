@@ -11,7 +11,8 @@
     "dev:migrate": "npx tsx --env-file=.env.local src/scripts/migrate.ts",
     "dev:seed": "npx tsx --env-file=.env.local src/scripts/seed-policies.ts",
     "dev:full": "docker compose up -d --wait && npx tsx --env-file=.env.local src/scripts/migrate.ts && next dev",
-    "dev:worker": "npx tsx --env-file=.env.local src/server/worker.ts"
+    "dev:worker": "npx tsx --env-file=.env.local src/server/worker.ts",
+    "prepare": "husky"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",
@@ -42,6 +43,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
     "prettier": "^3.8.1",
     "tailwindcss": "^4",
     "tsup": "^8.5.1",
