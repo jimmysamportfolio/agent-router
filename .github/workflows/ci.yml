@@ -17,7 +17,8 @@ jobs:
           node-version: 20
           cache: npm
 
-      - run: npm ci --include=optional
+      - run: npm install --package-lock-only
+      - run: npm ci
 
       - name: Lint
         run: npm run lint
