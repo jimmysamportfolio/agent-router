@@ -1,26 +1,9 @@
-import { vi, type Mock } from "vitest";
-import type { ListingRow, AgentConfigRow } from "@/lib/types";
-
-vi.mock("@/lib/utils/embedding", () => ({
-  embedTexts: vi.fn(),
-}));
-
-vi.mock("@/lib/db/queries/agent-configs", () => ({
-  getActiveAgentConfigsByTenant: vi.fn(),
-}));
-
-vi.mock("@/lib/db/queries/tenant-policies", () => ({
-  searchTenantPoliciesByEmbedding: vi.fn(),
-}));
-
-import { embedTexts } from "@/lib/utils/embedding";
-import { getActiveAgentConfigsByTenant } from "@/lib/db/queries/agent-configs";
-import { searchTenantPoliciesByEmbedding } from "@/lib/db/queries/tenant-policies";
-import { planAgentDispatch } from "@/server/pipeline/router";
-
-const mockEmbed = embedTexts as Mock;
-const mockGetConfigs = getActiveAgentConfigsByTenant as Mock;
-const mockSearch = searchTenantPoliciesByEmbedding as Mock;
+import { vi } from "vitest";
+import type { IAgentConfigRepository } from "@/lib/db/repositories/agent-config.repository";
+import type { IPolicyRepository } from "@/lib/db/repositories/policy.repository";
+import type { IEmbeddingService } from "@/features/pipeline/services/router";
+import { PolicyRouterService } from "@/features/pipeline/services/router";
+import type { AgentConfigRow, ListingRow } from "@/types";
 
 function makeListing(overrides: Partial<ListingRow> = {}): ListingRow {
   return {
@@ -54,13 +37,41 @@ function makeConfigRow(
   };
 }
 
-describe("planAgentDispatch", () => {
+function createMocks() {
+  const agentConfigRepo: IAgentConfigRepository = {
+    getActiveByTenant: vi.fn().mockResolvedValue([]),
+    getById: vi.fn(),
+    insert: vi.fn(),
+    update: vi.fn(),
+    deactivate: vi.fn(),
+  };
+
+  const policyRepo: IPolicyRepository = {
+    searchByEmbedding: vi
+      .fn()
+      .mockResolvedValue([
+        { source_file: "test.md", content: "Test policy", similarity: 0.9 },
+      ]),
+  };
+
+  const embeddingService: IEmbeddingService = {
+    embedTexts: vi.fn().mockResolvedValue([[0.1, 0.2, 0.3]]),
+  };
+
+  return { agentConfigRepo, policyRepo, embeddingService };
+}
+
+describe("PolicyRouterService", () => {
+  let mocks: ReturnType<typeof createMocks>;
+  let routerService: PolicyRouterService;
+
   beforeEach(() => {
-    vi.clearAllMocks();
-    mockEmbed.mockResolvedValue([[0.1, 0.2, 0.3]]);
-    mockSearch.mockResolvedValue([
-      { source_file: "test.md", content: "Test policy", similarity: 0.9 },
-    ]);
+    mocks = createMocks();
+    routerService = new PolicyRouterService(
+      mocks.agentConfigRepo,
+      mocks.policyRepo,
+      mocks.embeddingService,
+    );
   });
 
   it("returns dispatch plans for all active configs", async () => {
@@ -68,9 +79,14 @@ describe("planAgentDispatch", () => {
       makeConfigRow({ id: "c1", name: "agent-a" }),
       makeConfigRow({ id: "c2", name: "agent-b" }),
     ];
-    mockGetConfigs.mockResolvedValue(configs);
+    vi.mocked(mocks.agentConfigRepo.getActiveByTenant).mockResolvedValue(
+      configs,
+    );
 
-    const plans = await planAgentDispatch(makeListing(), "tenant-1");
+    const plans = await routerService.planAgentDispatch(
+      makeListing(),
+      "tenant-1",
+    );
 
     expect(plans).toHaveLength(2);
     expect(plans[0]!.agentConfig.name).toBe("agent-a");
@@ -78,33 +94,37 @@ describe("planAgentDispatch", () => {
   });
 
   it("throws error when no active configs", async () => {
-    mockGetConfigs.mockResolvedValue([]);
+    vi.mocked(mocks.agentConfigRepo.getActiveByTenant).mockResolvedValue([]);
 
-    await expect(planAgentDispatch(makeListing(), "tenant-1")).rejects.toThrow(
-      "No active agent configurations for tenant: tenant-1",
-    );
-    expect(mockEmbed).not.toHaveBeenCalled();
+    await expect(
+      routerService.planAgentDispatch(makeListing(), "tenant-1"),
+    ).rejects.toThrow("No active agent configurations for tenant: tenant-1");
+    expect(mocks.embeddingService.embedTexts).not.toHaveBeenCalled();
   });
 
   it("throws error when embedding fails", async () => {
-    mockGetConfigs.mockResolvedValue([makeConfigRow()]);
-    mockEmbed.mockResolvedValue([]);
+    vi.mocked(mocks.agentConfigRepo.getActiveByTenant).mockResolvedValue([
+      makeConfigRow(),
+    ]);
+    vi.mocked(mocks.embeddingService.embedTexts).mockResolvedValue([]);
 
-    await expect(planAgentDispatch(makeListing(), "tenant-1")).rejects.toThrow(
-      "Failed to generate embedding for listing",
-    );
-    expect(mockSearch).not.toHaveBeenCalled();
+    await expect(
+      routerService.planAgentDispatch(makeListing(), "tenant-1"),
+    ).rejects.toThrow("Failed to generate embedding for listing");
+    expect(mocks.policyRepo.searchByEmbedding).not.toHaveBeenCalled();
   });
 
   it("passes correct source files to vector search", async () => {
     const config = makeConfigRow({
       policy_source_files: ["prohibited.md", "health.md"],
     });
-    mockGetConfigs.mockResolvedValue([config]);
+    vi.mocked(mocks.agentConfigRepo.getActiveByTenant).mockResolvedValue([
+      config,
+    ]);
 
-    await planAgentDispatch(makeListing(), "tenant-1");
+    await routerService.planAgentDispatch(makeListing(), "tenant-1");
 
-    expect(mockSearch).toHaveBeenCalledWith(
+    expect(mocks.policyRepo.searchByEmbedding).toHaveBeenCalledWith(
       "tenant-1",
       [0.1, 0.2, 0.3],
       ["prohibited.md", "health.md"],
@@ -122,9 +142,11 @@ describe("planAgentDispatch", () => {
       policy_source_files: ["prohibited.md"],
       options: { skipRedaction: true },
     });
-    mockGetConfigs.mockResolvedValue([config]);
+    vi.mocked(mocks.agentConfigRepo.getActiveByTenant).mockResolvedValue([
+      config,
+    ]);
 
-    const plans = await planAgentDispatch(makeListing(), "t-1");
+    const plans = await routerService.planAgentDispatch(makeListing(), "t-1");
 
     expect(plans[0]!.agentConfig).toEqual({
       id: "cfg-id",

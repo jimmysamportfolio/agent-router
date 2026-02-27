@@ -1,18 +1,12 @@
 import { vi, type Mock } from "vitest";
 
-vi.mock("@/lib/db/pool", () => ({
+vi.mock("@/lib/db/client", () => ({
   query: vi.fn(),
   queryOne: vi.fn(),
 }));
 
-import { query, queryOne } from "@/lib/db/pool";
-import {
-  getActiveAgentConfigsByTenant,
-  getAgentConfigById,
-  insertAgentConfig,
-  updateAgentConfig,
-  deactivateAgentConfig,
-} from "@/lib/db/queries/agent-configs";
+import { query, queryOne } from "@/lib/db/client";
+import { AgentConfigRepository } from "@/lib/db/repositories/agent-config.repository";
 
 const mockQuery = query as Mock;
 const mockQueryOne = queryOne as Mock;
@@ -30,15 +24,18 @@ const SAMPLE_ROW = {
   updated_at: new Date(),
 };
 
-describe("agent-configs queries", () => {
+describe("AgentConfigRepository", () => {
+  let repo: AgentConfigRepository;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    repo = new AgentConfigRepository();
   });
 
-  describe("getActiveAgentConfigsByTenant", () => {
+  describe("getActiveByTenant", () => {
     it("returns active configs for tenant", async () => {
       mockQuery.mockResolvedValue([SAMPLE_ROW]);
-      const result = await getActiveAgentConfigsByTenant("tenant-1");
+      const result = await repo.getActiveByTenant("tenant-1");
       expect(result).toEqual([SAMPLE_ROW]);
       expect(mockQuery).toHaveBeenCalledWith(
         expect.stringContaining("is_active = true"),
@@ -48,29 +45,29 @@ describe("agent-configs queries", () => {
 
     it("returns empty array when no configs", async () => {
       mockQuery.mockResolvedValue([]);
-      const result = await getActiveAgentConfigsByTenant("tenant-1");
+      const result = await repo.getActiveByTenant("tenant-1");
       expect(result).toEqual([]);
     });
   });
 
-  describe("getAgentConfigById", () => {
+  describe("getById", () => {
     it("returns config by id", async () => {
       mockQueryOne.mockResolvedValue(SAMPLE_ROW);
-      const result = await getAgentConfigById("config-1");
+      const result = await repo.getById("config-1");
       expect(result).toEqual(SAMPLE_ROW);
     });
 
     it("returns undefined when not found", async () => {
       mockQueryOne.mockResolvedValue(undefined);
-      const result = await getAgentConfigById("nonexistent");
+      const result = await repo.getById("nonexistent");
       expect(result).toBeUndefined();
     });
   });
 
-  describe("insertAgentConfig", () => {
+  describe("insert", () => {
     it("inserts and returns new config", async () => {
       mockQueryOne.mockResolvedValue(SAMPLE_ROW);
-      const result = await insertAgentConfig("tenant-1", {
+      const result = await repo.insert("tenant-1", {
         name: "test-agent",
         displayName: "Test Agent",
         systemPromptTemplate: "You are a test agent.",
@@ -83,7 +80,7 @@ describe("agent-configs queries", () => {
     it("throws DatabaseError on failure", async () => {
       mockQueryOne.mockResolvedValue(undefined);
       await expect(
-        insertAgentConfig("tenant-1", {
+        repo.insert("tenant-1", {
           name: "test",
           displayName: "Test",
           systemPromptTemplate: "prompt",
@@ -94,10 +91,10 @@ describe("agent-configs queries", () => {
     });
   });
 
-  describe("updateAgentConfig", () => {
+  describe("update", () => {
     it("builds SET clause for single field", async () => {
       mockQueryOne.mockResolvedValue(SAMPLE_ROW);
-      await updateAgentConfig("config-1", { displayName: "New Name" });
+      await repo.update("config-1", { displayName: "New Name" });
       const sql = mockQueryOne.mock.calls[0]![0] as string;
       expect(sql).toContain("display_name = $1");
       expect(sql).toContain("updated_at = NOW()");
@@ -105,7 +102,7 @@ describe("agent-configs queries", () => {
 
     it("builds SET clause for multiple fields", async () => {
       mockQueryOne.mockResolvedValue(SAMPLE_ROW);
-      await updateAgentConfig("config-1", {
+      await repo.update("config-1", {
         displayName: "New Name",
         isActive: false,
       });
@@ -115,7 +112,7 @@ describe("agent-configs queries", () => {
     });
 
     it("throws when no fields to update", async () => {
-      await expect(updateAgentConfig("config-1", {})).rejects.toThrow(
+      await expect(repo.update("config-1", {})).rejects.toThrow(
         "No fields to update",
       );
     });
@@ -123,21 +120,21 @@ describe("agent-configs queries", () => {
     it("throws DatabaseError when config not found", async () => {
       mockQueryOne.mockResolvedValue(undefined);
       await expect(
-        updateAgentConfig("nonexistent", { displayName: "x" }),
+        repo.update("nonexistent", { displayName: "x" }),
       ).rejects.toThrow("Failed to update agent config");
     });
   });
 
-  describe("deactivateAgentConfig", () => {
+  describe("deactivate", () => {
     it("sets is_active to false", async () => {
       mockQueryOne.mockResolvedValue({ ...SAMPLE_ROW, is_active: false });
-      const result = await deactivateAgentConfig("config-1");
+      const result = await repo.deactivate("config-1");
       expect(result.is_active).toBe(false);
     });
 
     it("throws DatabaseError when not found", async () => {
       mockQueryOne.mockResolvedValue(undefined);
-      await expect(deactivateAgentConfig("nonexistent")).rejects.toThrow(
+      await expect(repo.deactivate("nonexistent")).rejects.toThrow(
         "Failed to deactivate agent config",
       );
     });
