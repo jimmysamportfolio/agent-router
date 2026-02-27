@@ -1,12 +1,13 @@
 import { REVIEW_QUEUE_NAME, type ReviewJobData } from "@/lib/queue";
-import { processReview } from "@/server/pipeline/orchestrator";
-import { createQueueProvider } from "@/server/pipeline/queue";
+import { createContainer } from "@/server/container";
+import { createQueueProvider } from "@/server/queue";
 
 const provider = createQueueProvider();
+const container = createContainer((data) => provider.enqueue(data));
 
 async function handleJob(data: ReviewJobData): Promise<void> {
   console.log(`[Worker] Processing review ${data.reviewId}`);
-  await processReview(data.reviewId, data.tenantId);
+  await container.pipeline.processReview(data.reviewId, data.tenantId);
   console.log(`[Worker] Completed review ${data.reviewId}`);
 }
 

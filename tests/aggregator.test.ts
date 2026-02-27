@@ -1,5 +1,5 @@
-import { aggregateResults } from "@/server/pipeline/aggregator";
-import type { SubAgentResult } from "@/server/pipeline/types";
+import { aggregateResults } from "@/features/pipeline/services/aggregator";
+import type { SubAgentResult } from "@/features/pipeline/types";
 
 function makeResult(overrides: Partial<SubAgentResult> = {}): SubAgentResult {
   return {

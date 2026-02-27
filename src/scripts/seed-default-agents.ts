@@ -1,6 +1,7 @@
 import { getPool } from "@/lib/db/pool";
-import { insertAgentConfig } from "@/lib/db/queries/agent-configs";
-import { DEFAULT_TENANT_ID } from "@/lib/db/queries/tenants";
+import { AgentConfigRepository } from "@/lib/db/repositories/agent-config.repository";
+
+const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
 const DEFAULT_AGENT_CONFIGS = [
   {
@@ -71,17 +72,24 @@ Return your analysis as a structured result with verdict, confidence (0-1), any 
 
 async function seed() {
   console.log("Seeding default agent configs...");
+  const repo = new AgentConfigRepository();
 
   for (const config of DEFAULT_AGENT_CONFIGS) {
     try {
-      await insertAgentConfig(DEFAULT_TENANT_ID, config);
+      await repo.insert(DEFAULT_TENANT_ID, config);
       console.log(`  Inserted: ${config.name}`);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      if (
-        message.includes("duplicate key") ||
-        message.includes("unique constraint")
-      ) {
+      const code =
+        err != null && typeof err === "object" && "code" in err
+          ? (err as { code: unknown }).code
+          : undefined;
+      const isDuplicate =
+        code === "23505" ||
+        (code === undefined &&
+          err instanceof Error &&
+          (err.message.includes("duplicate key") ||
+            err.message.includes("unique constraint")));
+      if (isDuplicate) {
         console.log(`  Skipped (already exists): ${config.name}`);
       } else {
         throw err;

@@ -1,4 +1,4 @@
-import { redactPersonalInformation } from "@/server/pipeline/guardrails/redactor";
+import { redactPersonalInformation } from "@/features/pipeline/guardrails/redactor";
 
 describe("redactPII", () => {
   it("redacts email addresses", () => {

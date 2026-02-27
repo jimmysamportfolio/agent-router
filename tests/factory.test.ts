@@ -1,20 +1,13 @@
-import { vi, type Mock } from "vitest";
+import { vi } from "vitest";
+import type { ILLMService, LLMStructuredResult } from "@/lib/llm/llm.interface";
+import { AgentFactoryService } from "@/features/pipeline/agents/factory";
 import type {
   AgentConfig,
   AgentInput,
-  PolicyMatch,
   SubAgentResult,
-} from "@/server/pipeline/types";
-import type { ListingRow } from "@/lib/types";
-
-vi.mock("@/server/pipeline/llm", () => ({
-  callClaudeStructured: vi.fn(),
-}));
-
-import { callClaudeStructured } from "@/server/pipeline/llm";
-import { createPolicyAgent } from "@/server/pipeline/agents/factory";
-
-const mockCallClaude = callClaudeStructured as Mock;
+} from "@/features/pipeline/types";
+import type { PolicyMatch } from "@/features/policies/types";
+import type { ListingRow } from "@/types";
 
 function makeConfig(overrides: Partial<AgentConfig> = {}): AgentConfig {
   return {
@@ -65,20 +58,35 @@ const MOCK_LLM_DATA = {
   reasoning: "No issues found",
 };
 
-const MOCK_LLM_RESULT = { data: MOCK_LLM_DATA, tokensUsed: 150 };
+const MOCK_LLM_RESULT: LLMStructuredResult<typeof MOCK_LLM_DATA> = {
+  data: MOCK_LLM_DATA,
+  tokensUsed: 150,
+};
 
-describe("createPolicyAgent", () => {
+function createMockLLM(): ILLMService & {
+  callStructured: ReturnType<typeof vi.fn>;
+} {
+  return {
+    callText: vi.fn(),
+    callStructured: vi.fn().mockResolvedValue(MOCK_LLM_RESULT),
+  };
+}
+
+describe("AgentFactoryService", () => {
+  let mockLLM: ReturnType<typeof createMockLLM>;
+  let factory: AgentFactoryService;
+
   beforeEach(() => {
-    vi.clearAllMocks();
-    mockCallClaude.mockResolvedValue(MOCK_LLM_RESULT);
+    mockLLM = createMockLLM();
+    factory = new AgentFactoryService(mockLLM);
   });
 
   it("resolves {{POLICY_CONTEXT}} placeholder in system prompt", async () => {
     const policies = makePolicies();
-    const agent = createPolicyAgent(makeConfig(), policies);
+    const agent = factory.createPolicyAgent(makeConfig(), policies);
     await agent(makeInput());
 
-    const systemPrompt = mockCallClaude.mock.calls[0]![0] as string;
+    const systemPrompt = mockLLM.callStructured.mock.calls[0]![0] as string;
     expect(systemPrompt).toContain("[test.md] No weapons allowed.");
     expect(systemPrompt).toContain("[test.md] No drugs allowed.");
     expect(systemPrompt).not.toContain("{{POLICY_CONTEXT}}");
@@ -89,24 +97,24 @@ describe("createPolicyAgent", () => {
       systemPromptTemplate: "You are a test agent with no placeholder.",
     });
     const policies = makePolicies();
-    const agent = createPolicyAgent(config, policies);
+    const agent = factory.createPolicyAgent(config, policies);
     await agent(makeInput());
 
-    const systemPrompt = mockCallClaude.mock.calls[0]![0] as string;
+    const systemPrompt = mockLLM.callStructured.mock.calls[0]![0] as string;
     expect(systemPrompt).toContain("Relevant Policies:");
     expect(systemPrompt).toContain("[test.md] No weapons allowed.");
   });
 
   it("handles empty policies", async () => {
-    const agent = createPolicyAgent(makeConfig(), []);
+    const agent = factory.createPolicyAgent(makeConfig(), []);
     await agent(makeInput());
 
-    const systemPrompt = mockCallClaude.mock.calls[0]![0] as string;
+    const systemPrompt = mockLLM.callStructured.mock.calls[0]![0] as string;
     expect(systemPrompt).toContain("No specific policies loaded.");
   });
 
   it("returns correct SubAgentResult shape", async () => {
-    const agent = createPolicyAgent(makeConfig(), []);
+    const agent = factory.createPolicyAgent(makeConfig(), []);
     const result = await agent(makeInput());
 
     expect(result).toEqual({
@@ -120,29 +128,29 @@ describe("createPolicyAgent", () => {
 
   it("derives tool name from config name with hyphens", async () => {
     const config = makeConfig({ name: "health-claims" });
-    const agent = createPolicyAgent(config, []);
+    const agent = factory.createPolicyAgent(config, []);
     await agent(makeInput());
 
-    const toolName = mockCallClaude.mock.calls[0]![3] as string;
+    const toolName = mockLLM.callStructured.mock.calls[0]![3] as string;
     expect(toolName).toBe("submit_health_claims_analysis");
   });
 
   it("passes skipRedaction option through", async () => {
     const config = makeConfig({ options: { skipRedaction: true } });
-    const agent = createPolicyAgent(config, []);
+    const agent = factory.createPolicyAgent(config, []);
     await agent(makeInput());
 
-    const options = mockCallClaude.mock.calls[0]![4] as {
+    const options = mockLLM.callStructured.mock.calls[0]![4] as {
       skipRedaction: boolean;
     };
     expect(options.skipRedaction).toBe(true);
   });
 
   it("defaults skipRedaction to false", async () => {
-    const agent = createPolicyAgent(makeConfig(), []);
+    const agent = factory.createPolicyAgent(makeConfig(), []);
     await agent(makeInput());
 
-    const options = mockCallClaude.mock.calls[0]![4] as {
+    const options = mockLLM.callStructured.mock.calls[0]![4] as {
       skipRedaction: boolean;
     };
     expect(options.skipRedaction).toBe(false);
@@ -154,10 +162,10 @@ describe("createPolicyAgent", () => {
       description: "Ancient blade",
       category: "Collectibles",
     });
-    const agent = createPolicyAgent(makeConfig(), []);
+    const agent = factory.createPolicyAgent(makeConfig(), []);
     await agent(makeInput({ listing }));
 
-    const userPrompt = mockCallClaude.mock.calls[0]![1] as string;
+    const userPrompt = mockLLM.callStructured.mock.calls[0]![1] as string;
     expect(userPrompt).toContain("Listing Title: Rare Sword");
     expect(userPrompt).toContain("Description: Ancient blade");
     expect(userPrompt).toContain("Category: Collectibles");

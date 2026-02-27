@@ -1,4 +1,7 @@
-import { submitListingSchema, reviewIdSchema } from "@/lib/validation";
+import {
+  submitListingSchema,
+  reviewIdSchema,
+} from "@/features/reviews/validators/review.validators";
 
 describe("submitListingSchema", () => {
   const validInput = {
