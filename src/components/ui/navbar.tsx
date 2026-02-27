@@ -47,6 +47,8 @@ function Navbar({ logo, links, actions }: NavbarProps) {
             className="md:hidden"
             onClick={() => setMobileMenuOpen(true)}
             aria-label="Open menu"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-menu"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -68,7 +70,10 @@ function Navbar({ logo, links, actions }: NavbarProps) {
       </div>
 
       <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <DialogContent className="top-0 left-0 translate-x-0 translate-y-0 h-full w-full max-w-full rounded-none border-0 sm:text-left">
+        <DialogContent
+          id="mobile-menu"
+          className="top-0 left-0 translate-x-0 translate-y-0 h-full w-full max-w-full rounded-none border-0 sm:text-left"
+        >
           <div className="flex flex-col gap-4 pt-8">
             {links.map((link) => (
               <a

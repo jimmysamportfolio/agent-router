@@ -29,6 +29,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 
 function Section({
@@ -181,7 +182,7 @@ export default function Home() {
                 </svg>
               </Button>
             </CollapsibleTrigger>
-            <CollapsibleContent className="mt-2 rounded-md border border-graphite/10 bg-graphite/2 px-4 py-3 text-sm text-graphite/70">
+            <CollapsibleContent className="mt-2 rounded-md border border-graphite/10 bg-graphite/5 px-4 py-3 text-sm text-graphite/70">
               Policy ID:{" "}
               <span className="font-mono text-graphite">POL-00142</span>
               <br />
@@ -211,7 +212,9 @@ export default function Home() {
               </DialogHeader>
               <Input placeholder="Type CONFIRM to proceed" />
               <DialogFooter>
-                <Button variant="outline">Cancel</Button>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
                 <Button>Confirm</Button>
               </DialogFooter>
             </DialogContent>
