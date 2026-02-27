@@ -1,6 +1,6 @@
 import type { ListingRow, ReviewRow, Severity, Verdict } from "@/types";
 import type { TokenTracker } from "@/features/pipeline/guardrails/budget";
-export type { PolicyMatch } from "@/features/policies/types";
+import type { PolicyMatch } from "@/features/policies/types";
 
 // ── LLM Types ───────────────────────────────────────────────────────
 
