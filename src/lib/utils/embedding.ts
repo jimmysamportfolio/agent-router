@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { getEnv } from "@/config/env";
 
 const EMBEDDING_MODEL = "gemini-embedding-001";
 const EMBEDDING_DIMENSIONS = 768;
@@ -9,7 +10,15 @@ const TARGET_CHARS = TARGET_TOKENS * CHARS_PER_TOKEN;
 const OVERLAP_CHARS = OVERLAP_TOKENS * CHARS_PER_TOKEN;
 const BATCH_LIMIT = 100;
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+let ai: GoogleGenAI | null = null;
+
+function getGeminiClient(): GoogleGenAI {
+  if (!ai) {
+    const env = getEnv();
+    ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
+  }
+  return ai;
+}
 
 export interface PolicyChunk {
   sourceFile: string;
@@ -58,12 +67,13 @@ export function chunkPolicy(sourceFile: string, text: string): PolicyChunk[] {
 export async function embedTexts(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
   const results: number[][] = [];
+  const client = getGeminiClient();
 
   for (let i = 0; i < texts.length; i += BATCH_LIMIT) {
     const batch = texts.slice(i, i + BATCH_LIMIT);
     const embeddings = await Promise.all(
       batch.map(async (text) => {
-        const res = await ai.models.embedContent({
+        const res = await client.models.embedContent({
           model: EMBEDDING_MODEL,
           contents: text,
           config: { outputDimensionality: EMBEDDING_DIMENSIONS },
