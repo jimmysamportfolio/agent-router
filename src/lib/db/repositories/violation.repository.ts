@@ -1,6 +1,7 @@
 import type { PoolClient } from "pg";
 import type { ViolationRow } from "@/types";
 import { BaseRepository } from "@/lib/db/base.repository";
+import { executeInTransaction } from "@/lib/db/client";
 
 export interface AgentViolation {
   policySection: string;
@@ -41,6 +42,8 @@ export class ViolationRepository
       return this.queryWithClient<ViolationRow>(client, sql, params);
     }
 
-    return this.query<ViolationRow>(sql, params);
+    return executeInTransaction((txClient) =>
+      this.queryWithClient<ViolationRow>(txClient, sql, params),
+    );
   }
 }

@@ -79,11 +79,17 @@ async function seed() {
       await repo.insert(DEFAULT_TENANT_ID, config);
       console.log(`  Inserted: ${config.name}`);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      if (
-        message.includes("duplicate key") ||
-        message.includes("unique constraint")
-      ) {
+      const code =
+        err != null && typeof err === "object" && "code" in err
+          ? (err as { code: unknown }).code
+          : undefined;
+      const isDuplicate =
+        code === "23505" ||
+        (code === undefined &&
+          err instanceof Error &&
+          (err.message.includes("duplicate key") ||
+            err.message.includes("unique constraint")));
+      if (isDuplicate) {
         console.log(`  Skipped (already exists): ${config.name}`);
       } else {
         throw err;

@@ -52,7 +52,7 @@ function toPolicyMatches(
 }
 
 function buildSearchText(listing: ListingRow): string {
-  return `${listing.title} ${listing.description}`;
+  return `${listing.title} ${listing.description}`.trim();
 }
 
 export class PolicyRouterService {

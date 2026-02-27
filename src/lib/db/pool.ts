@@ -1,22 +1,17 @@
 import { Pool, PoolClient, QueryResultRow } from "pg";
-import { ConfigError } from "@/lib/errors";
+import { getDbEnv } from "@/config/env";
 
 let pool: Pool | undefined;
 
 function getPool(): Pool {
   if (pool) return pool;
 
-  if (!process.env.DATABASE_URL) {
-    throw new ConfigError("DATABASE_URL");
-  }
+  const db = getDbEnv();
   pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    max: parseInt(process.env.DB_POOL_MAX ?? "10", 10),
-    connectionTimeoutMillis: parseInt(
-      process.env.DB_CONN_TIMEOUT_MS ?? "5000",
-      10,
-    ),
-    idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT_MS ?? "30000", 10),
+    connectionString: db.DATABASE_URL,
+    max: db.DB_POOL_MAX,
+    connectionTimeoutMillis: db.DB_CONN_TIMEOUT_MS,
+    idleTimeoutMillis: db.DB_IDLE_TIMEOUT_MS,
   });
 
   pool.on("error", (err) => {

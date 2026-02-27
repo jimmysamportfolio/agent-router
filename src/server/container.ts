@@ -15,13 +15,21 @@ import {
 } from "@/features/pipeline";
 import { ReviewService } from "@/features/reviews";
 import { embedTexts } from "@/lib/utils/embedding";
+import { getLlmEnv } from "@/config/env";
 import type { ReviewJobData } from "@/lib/queue";
 
 export type EnqueueFn = (data: ReviewJobData) => Promise<string>;
 
-export function createContainer(enqueueReview: EnqueueFn) {
-  // Infrastructure
-  const llmService = new LLMService(process.env.ANTHROPIC_API_KEY!);
+export interface Container {
+  pipeline: ReviewPipelineService;
+  reviewService: ReviewService;
+  scanRepo: ScanRepository;
+  reviewRepo: ReviewRepository;
+}
+
+export function createContainer(enqueueReview: EnqueueFn): Container {
+  const { ANTHROPIC_API_KEY } = getLlmEnv();
+  const llmService = new LLMService(ANTHROPIC_API_KEY);
   const embeddingService = { embedTexts };
 
   // Repositories
@@ -56,7 +64,11 @@ export function createContainer(enqueueReview: EnqueueFn) {
     enqueueReview,
   );
 
-  return { pipeline, reviewService, scanRepo, reviewRepo };
+  const container: Container = {
+    pipeline,
+    reviewService,
+    scanRepo,
+    reviewRepo,
+  };
+  return container;
 }
-
-export type Container = ReturnType<typeof createContainer>;

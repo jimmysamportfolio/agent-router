@@ -1,9 +1,9 @@
 import type {
   AgentConfig,
   AgentInput,
-  PolicyMatch,
   SubAgentResult,
 } from "@/features/pipeline/types";
+import type { PolicyMatch } from "@/features/policies/types";
 
 export type PolicyAgent = (input: AgentInput) => Promise<SubAgentResult>;
 

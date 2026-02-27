@@ -39,7 +39,8 @@ const SCAN_QUERY_SQL = `
 
 const VIOLATIONS_QUERY_SQL = `
   SELECT id, review_id, policy_section, severity, description
-  FROM violations WHERE review_id = $1`;
+  FROM violations WHERE review_id = $1
+  ORDER BY id ASC`;
 
 export class ScanRepository extends BaseRepository implements IScanRepository {
   async getByReviewId(reviewId: string): Promise<ScanResultOutput | undefined> {

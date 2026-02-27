@@ -1,5 +1,6 @@
 import type { ListingRow, ReviewRow, Severity, Verdict } from "@/types";
 import type { TokenTracker } from "@/features/pipeline/guardrails/budget";
+export type { PolicyMatch } from "@/features/policies/types";
 
 // ── LLM Types ───────────────────────────────────────────────────────
 
@@ -41,12 +42,6 @@ export interface ExplainerInput {
 export interface AggregationResult {
   decision: AggregatedDecision;
   explanation: string;
-}
-
-export interface PolicyMatch {
-  sourceFile: string;
-  content: string;
-  similarity: number;
 }
 
 export interface SubAgentResult {

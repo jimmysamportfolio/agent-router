@@ -1,8 +1,5 @@
 import { router, publicProcedure } from "@/server/trpc";
-import {
-  submitListingSchema,
-  reviewIdSchema,
-} from "@/features/reviews/validators/review.validators";
+import { submitListingSchema, reviewIdSchema } from "@/features/reviews";
 
 export const decisionsRouter = router({
   submit: publicProcedure

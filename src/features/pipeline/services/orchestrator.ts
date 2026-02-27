@@ -2,7 +2,7 @@ import type { IReviewRepository } from "@/lib/db/repositories/review.repository"
 import type { IListingRepository } from "@/lib/db/repositories/listing.repository";
 import type { IViolationRepository } from "@/lib/db/repositories/violation.repository";
 import { executeInTransaction } from "@/lib/db/client";
-import { DatabaseError } from "@/lib/errors";
+import { DatabaseError, InvariantError } from "@/lib/errors";
 import { aggregateResults } from "@/features/pipeline/services/aggregator";
 import { TokenTracker } from "@/features/pipeline/guardrails/budget";
 import type { PolicyRouterService } from "@/features/pipeline/services/router";
@@ -128,7 +128,7 @@ export class ReviewPipelineService {
     dispatchPlans: AgentDispatchPlan[],
     input: AgentInput,
   ): Promise<SubAgentResult[]> {
-    const results: SubAgentResult[] = await Promise.all(
+    const settled = await Promise.allSettled(
       dispatchPlans.map((plan) =>
         this.agentFactory.createPolicyAgent(
           plan.agentConfig,
@@ -136,6 +136,29 @@ export class ReviewPipelineService {
         )(input),
       ),
     );
+
+    const results: SubAgentResult[] = [];
+    const failures: string[] = [];
+
+    for (let i = 0; i < settled.length; i++) {
+      const outcome = settled[i]!;
+      if (outcome.status === "fulfilled") {
+        results.push(outcome.value);
+      } else {
+        const plan = dispatchPlans[i]!;
+        const reason =
+          outcome.reason instanceof Error
+            ? outcome.reason.message
+            : String(outcome.reason);
+        console.error(`Agent ${plan.agentConfig.name} failed: ${reason}`);
+        failures.push(plan.agentConfig.name);
+      }
+    }
+
+    if (results.length === 0) {
+      throw new InvariantError(`All agents failed: ${failures.join(", ")}`);
+    }
+
     return results;
   }
 

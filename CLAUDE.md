@@ -18,7 +18,7 @@ Policy compliance system for marketplace listings. LLM agents (Claude) + vector 
 
 ## Architecture
 
-```
+```text
 src/
 ├── app/                          # Next.js routing layer
 ├── features/                     # Domain modules (DI-based)

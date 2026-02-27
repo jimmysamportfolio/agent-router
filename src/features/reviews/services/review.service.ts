@@ -68,6 +68,7 @@ export class ReviewService {
       Date.now() - review.created_at.getTime() > STALE_THRESHOLD_MS;
 
     if (isStuck) {
+      await this.reviewRepo.updateStatus(review.id, "routing");
       const listing = await this.listingRepo.getById(review.listing_id);
       await this.enqueueReview({
         reviewId: review.id,

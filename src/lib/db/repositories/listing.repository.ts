@@ -44,17 +44,10 @@ export class ListingRepository
       input.metadata,
     ];
 
-    if (client) {
-      const row = await this.queryOneWithClient<ListingRow>(
-        client,
-        INSERT_SQL,
-        params,
-      );
-      if (!row) throw new DatabaseError("Failed to insert listing");
-      return row;
-    }
+    const row = client
+      ? await this.queryOneWithClient<ListingRow>(client, INSERT_SQL, params)
+      : await this.queryOne<ListingRow>(INSERT_SQL, params);
 
-    const row = await this.queryOne<ListingRow>(INSERT_SQL, params);
     if (!row) throw new DatabaseError("Failed to insert listing");
     return row;
   }

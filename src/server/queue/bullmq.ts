@@ -1,7 +1,8 @@
 import IORedis from "ioredis";
 import { Queue, Worker, type ConnectionOptions } from "bullmq";
 import { REVIEW_QUEUE_NAME, type ReviewJobData } from "@/lib/queue";
-import { ConfigError, InvariantError } from "@/lib/errors";
+import { InvariantError } from "@/lib/errors";
+import { getRedisEnv } from "@/config/env";
 import type {
   QueueProvider,
   QueueWorkerHandle,
@@ -17,8 +18,8 @@ export class BullMQProvider implements QueueProvider {
 
   private getQueueConnection(): IORedis {
     if (this.queueConnection) return this.queueConnection;
-    if (!process.env.REDIS_URL) throw new ConfigError("REDIS_URL");
-    this.queueConnection = new IORedis(process.env.REDIS_URL, {
+    const { REDIS_URL } = getRedisEnv();
+    this.queueConnection = new IORedis(REDIS_URL, {
       maxRetriesPerRequest: null,
     });
     return this.queueConnection;
@@ -45,9 +46,9 @@ export class BullMQProvider implements QueueProvider {
   createWorker(
     handler: (data: ReviewJobData) => Promise<void>,
   ): QueueWorkerHandle {
-    if (!process.env.REDIS_URL) throw new ConfigError("REDIS_URL");
+    const { REDIS_URL } = getRedisEnv();
 
-    const workerConnection = new IORedis(process.env.REDIS_URL, {
+    const workerConnection = new IORedis(REDIS_URL, {
       maxRetriesPerRequest: null,
     });
 

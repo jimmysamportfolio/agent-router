@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { getEnv } from "@/config/env";
+import { getGeminiEnv } from "@/config/env";
 
 const EMBEDDING_MODEL = "gemini-embedding-001";
 const EMBEDDING_DIMENSIONS = 768;
@@ -14,8 +14,8 @@ let ai: GoogleGenAI | null = null;
 
 function getGeminiClient(): GoogleGenAI {
   if (!ai) {
-    const env = getEnv();
-    ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
+    const { GEMINI_API_KEY } = getGeminiEnv();
+    ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
   }
   return ai;
 }
@@ -78,7 +78,13 @@ export async function embedTexts(texts: string[]): Promise<number[][]> {
           contents: text,
           config: { outputDimensionality: EMBEDDING_DIMENSIONS },
         });
-        return res.embeddings![0]!.values!;
+        const values = res.embeddings?.[0]?.values;
+        if (!values || values.length === 0) {
+          throw new Error(
+            `Embedding API returned no values (model=${EMBEDDING_MODEL}, textLength=${text.length})`,
+          );
+        }
+        return values;
       }),
     );
     results.push(...embeddings);

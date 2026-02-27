@@ -101,8 +101,9 @@ export class LLMService implements ILLMService {
         }
         lastError = err;
         if (attempt < MAX_RETRIES - 1) {
-          const delayMs = BASE_DELAY_MS * Math.pow(2, attempt);
-          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          const baseDelay = BASE_DELAY_MS * Math.pow(2, attempt);
+          const jitter = baseDelay * (0.5 + Math.random());
+          await new Promise((resolve) => setTimeout(resolve, jitter));
         }
       }
     }
@@ -110,8 +111,10 @@ export class LLMService implements ILLMService {
   }
 
   private extractTextContent(response: Anthropic.Message): string {
-    const textBlock = response.content[0];
-    if (!textBlock || textBlock.type !== "text") {
+    const textBlock = response.content.find(
+      (block): block is Anthropic.TextBlock => block.type === "text",
+    );
+    if (!textBlock) {
       throw new InvariantError("LLM response did not contain text content");
     }
     return textBlock.text;

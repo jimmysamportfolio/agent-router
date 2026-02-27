@@ -3,11 +3,17 @@ import { enqueueReview } from "@/lib/queue";
 import { createContainer, type Container } from "@/server/container";
 
 let container: Container | undefined;
+let containerFactory: typeof createContainer = createContainer;
 
 function getContainer(): Container {
   if (container) return container;
-  container = createContainer(enqueueReview);
+  container = containerFactory(enqueueReview);
   return container;
+}
+
+export function resetContainer(factory?: typeof createContainer): void {
+  container = undefined;
+  if (factory) containerFactory = factory;
 }
 
 export function createTRPCContext() {
