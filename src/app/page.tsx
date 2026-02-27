@@ -1,64 +1,225 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { Navbar } from "@/components/ui/navbar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectLabel,
+  SelectGroup,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="flex flex-col gap-4">
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-graphite/40">
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
 
 export default function Home() {
+  const [collapsibleOpen, setCollapsibleOpen] = useState(false);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="min-h-screen bg-white">
+      <Navbar
+        logo={
+          <span className="text-sm font-bold tracking-tight text-graphite">
+            AgentRouter
+          </span>
+        }
+        links={[
+          { label: "Dashboard", href: "#" },
+          { label: "Listings", href: "#" },
+          { label: "Policies", href: "#" },
+          { label: "Settings", href: "#" },
+        ]}
+        actions={
+          <Button variant="outline" size="sm">
+            Log in
+          </Button>
+        }
+      />
+
+      <main className="mx-auto max-w-2xl px-6 py-16 flex flex-col gap-14">
+        {/* Badges */}
+        <Section title="Badge">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="default">Default</Badge>
+            <Badge variant="secondary">Secondary</Badge>
+            <Badge variant="accent">Accent</Badge>
+            <Badge variant="destructive">Destructive</Badge>
+          </div>
+        </Section>
+
+        {/* Buttons */}
+        <Section title="Button — variants">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="default">Default</Button>
+            <Button variant="secondary">Secondary</Button>
+            <Button variant="outline">Outline</Button>
+            <Button variant="ghost">Ghost</Button>
+            <Button variant="link">Link</Button>
+          </div>
+        </Section>
+
+        <Section title="Button — sizes">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm">Small</Button>
+            <Button size="md">Medium</Button>
+            <Button size="lg">Large</Button>
+            <Button disabled>Disabled</Button>
+          </div>
+        </Section>
+
+        {/* Input */}
+        <Section title="Input">
+          <Input placeholder="Search listings…" />
+          <Input type="email" placeholder="you@example.com" />
+          <Input disabled placeholder="Disabled input" />
+        </Section>
+
+        {/* Textarea */}
+        <Section title="Textarea">
+          <Textarea placeholder="Write a policy description…" rows={4} />
+        </Section>
+
+        {/* Select */}
+        <Section title="Select">
+          <Select>
+            <SelectTrigger>
+              <SelectValue placeholder="Pick a category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Categories</SelectLabel>
+                <SelectItem value="electronics">Electronics</SelectItem>
+                <SelectItem value="clothing">Clothing</SelectItem>
+                <SelectItem value="furniture">Furniture</SelectItem>
+                <SelectItem value="toys">Toys</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Section>
+
+        {/* Tabs */}
+        <Section title="Tabs">
+          <Tabs defaultValue="overview">
+            <TabsList>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="listings">Listings</TabsTrigger>
+              <TabsTrigger value="policies">Policies</TabsTrigger>
+            </TabsList>
+            <TabsContent value="overview">
+              <p className="text-sm text-graphite/70 pt-2">
+                This is the overview tab. Shows a summary of agent activity.
+              </p>
+            </TabsContent>
+            <TabsContent value="listings">
+              <p className="text-sm text-graphite/70 pt-2">
+                Your marketplace listings will appear here.
+              </p>
+            </TabsContent>
+            <TabsContent value="policies">
+              <p className="text-sm text-graphite/70 pt-2">
+                Compliance policies and vector search results live here.
+              </p>
+            </TabsContent>
+          </Tabs>
+        </Section>
+
+        {/* Collapsible */}
+        <Section title="Collapsible">
+          <Collapsible open={collapsibleOpen} onOpenChange={setCollapsibleOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full justify-between">
+                <span>View policy details</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`transition-transform duration-200 ${collapsibleOpen ? "rotate-180" : ""}`}
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2 rounded-md border border-graphite/10 bg-graphite/5 px-4 py-3 text-sm text-graphite/70">
+              Policy ID:{" "}
+              <span className="font-mono text-graphite">POL-00142</span>
+              <br />
+              Status:{" "}
+              <Badge variant="accent" className="ml-1">
+                Active
+              </Badge>
+              <br />
+              Last reviewed: Feb 18, 2026
+            </CollapsibleContent>
+          </Collapsible>
+        </Section>
+
+        {/* Dialog */}
+        <Section title="Dialog">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline">Open dialog</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Confirm policy update</DialogTitle>
+                <DialogDescription>
+                  This will re-run the compliance check on all active listings.
+                  This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <Input placeholder="Type CONFIRM to proceed" />
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button>Confirm</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </Section>
       </main>
     </div>
   );
