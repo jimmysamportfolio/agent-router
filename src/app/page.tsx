@@ -182,9 +182,13 @@ export default function Home() {
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-2 rounded-md border border-graphite/10 bg-graphite/2 px-4 py-3 text-sm text-graphite/70">
-              Policy ID: <span className="font-mono text-graphite">POL-00142</span>
+              Policy ID:{" "}
+              <span className="font-mono text-graphite">POL-00142</span>
               <br />
-              Status: <Badge variant="accent" className="ml-1">Active</Badge>
+              Status:{" "}
+              <Badge variant="accent" className="ml-1">
+                Active
+              </Badge>
               <br />
               Last reviewed: Feb 18, 2026
             </CollapsibleContent>
