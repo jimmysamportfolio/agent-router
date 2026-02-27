@@ -4,9 +4,9 @@ import { AgentFactoryService } from "@/features/pipeline/agents/factory";
 import type {
   AgentConfig,
   AgentInput,
-  PolicyMatch,
   SubAgentResult,
 } from "@/features/pipeline/types";
+import type { PolicyMatch } from "@/features/policies/types";
 import type { ListingRow } from "@/types";
 
 function makeConfig(overrides: Partial<AgentConfig> = {}): AgentConfig {

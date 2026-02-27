@@ -3,9 +3,9 @@ import type { ILLMService } from "@/lib/llm/llm.interface";
 import type {
   AgentConfig,
   AgentInput,
-  PolicyMatch,
   SubAgentResult,
 } from "@/features/pipeline/types";
+import type { PolicyMatch } from "@/features/policies/types";
 import type { IAgentFactory, PolicyAgent } from "./agent.interface";
 
 const POLICY_PLACEHOLDER = "{{POLICY_CONTEXT}}";

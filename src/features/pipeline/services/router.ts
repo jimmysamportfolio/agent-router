@@ -7,8 +7,8 @@ import type {
   AgentConfig,
   AgentDispatchPlan,
   AgentOptions,
-  PolicyMatch,
 } from "@/features/pipeline/types";
+import type { PolicyMatch } from "@/features/policies/types";
 
 export interface IEmbeddingService {
   embedTexts(texts: string[]): Promise<number[][]>;
