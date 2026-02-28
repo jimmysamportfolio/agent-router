@@ -1,7 +1,9 @@
 import { vi } from "vitest";
-import type { IAgentConfigRepository } from "@/lib/db/repositories/agent-config.repository";
-import type { IPolicyRepository } from "@/lib/db/repositories/policy.repository";
-import type { IEmbeddingService } from "@/features/pipeline/services/router";
+import type {
+  IAgentConfigRepository,
+  IPolicyRepository,
+  IEmbeddingService,
+} from "@/features/pipeline/services/router";
 import { PolicyRouterService } from "@/features/pipeline/services/router";
 import type { AgentConfigRow, ListingRow } from "@/types";
 
@@ -50,7 +52,7 @@ function createMocks() {
     searchByEmbedding: vi
       .fn()
       .mockResolvedValue([
-        { source_file: "test.md", content: "Test policy", similarity: 0.9 },
+        { sourceFile: "test.md", content: "Test policy", similarity: 0.9 },
       ]),
   };
 

@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { router, publicProcedure } from "@/server/trpc";
-import { reviewIdSchema } from "@/features/reviews/validators/review.validators";
+import { reviewIdSchema } from "@/features/reviews";
 
 export const scansRouter = router({
   getById: publicProcedure

@@ -1,36 +1,39 @@
 import { LLMService } from "@/lib/llm";
 import {
-  ReviewRepository,
-  ListingRepository,
+  PipelineService,
+  PolicyRouterService,
   PolicyRepository,
   AgentConfigRepository,
-  ViolationRepository,
-  ScanRepository,
-} from "@/lib/db/repositories";
-import {
-  ReviewPipelineService,
-  PolicyRouterService,
   AgentFactoryService,
   ExplainerService,
+  AggregatorService,
 } from "@/features/pipeline";
-import { ReviewService } from "@/features/reviews";
-import { embedTexts } from "@/lib/utils/embedding";
+import {
+  ReviewService,
+  ReviewRepository,
+  ListingRepository,
+  ViolationRepository,
+  ScanRepository,
+} from "@/features/reviews";
+import { GeminiEmbeddingService } from "@/lib/utils/embedding";
 import { getLlmEnv } from "@/config/env";
-import type { ReviewJobData } from "@/lib/queue";
+import type { ReviewJobData } from "@/server/queue";
 
 export type EnqueueFn = (data: ReviewJobData) => Promise<string>;
 
 export interface Container {
-  pipeline: ReviewPipelineService;
-  reviewService: ReviewService;
+  pipeline: PipelineService;
+  submissionService: ReviewService;
   scanRepo: ScanRepository;
   reviewRepo: ReviewRepository;
+  listingRepo: ListingRepository;
+  violationRepo: ViolationRepository;
 }
 
 export function createContainer(enqueueReview: EnqueueFn): Container {
   const { ANTHROPIC_API_KEY } = getLlmEnv();
   const llmService = new LLMService(ANTHROPIC_API_KEY);
-  const embeddingService = { embedTexts };
+  const embeddingService = new GeminiEmbeddingService();
 
   // Repositories
   const reviewRepo = new ReviewRepository();
@@ -48,17 +51,16 @@ export function createContainer(enqueueReview: EnqueueFn): Container {
     embeddingService,
   );
   const explainer = new ExplainerService(llmService);
-  const pipeline = new ReviewPipelineService(
-    reviewRepo,
-    listingRepo,
-    violationRepo,
+  const aggregator = new AggregatorService();
+  const pipeline = new PipelineService(
     policyRouter,
     agentFactory,
     explainer,
+    aggregator,
   );
 
   // Feature services
-  const reviewService = new ReviewService(
+  const submissionService = new ReviewService(
     reviewRepo,
     listingRepo,
     enqueueReview,
@@ -66,9 +68,11 @@ export function createContainer(enqueueReview: EnqueueFn): Container {
 
   const container: Container = {
     pipeline,
-    reviewService,
+    submissionService,
     scanRepo,
     reviewRepo,
+    listingRepo,
+    violationRepo,
   };
   return container;
 }

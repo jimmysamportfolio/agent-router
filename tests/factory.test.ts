@@ -38,7 +38,6 @@ function makeListing(overrides: Partial<ListingRow> = {}): ListingRow {
 
 function makeInput(overrides: Partial<AgentInput> = {}): AgentInput {
   return {
-    reviewId: "review-1",
     listing: makeListing(),
     ...overrides,
   };

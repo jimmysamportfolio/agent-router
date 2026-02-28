@@ -6,7 +6,7 @@ vi.mock("@/lib/db/client", () => ({
 }));
 
 import { query, queryOne } from "@/lib/db/client";
-import { AgentConfigRepository } from "@/lib/db/repositories/agent-config.repository";
+import { AgentConfigRepository } from "@/features/pipeline/services/router";
 
 const mockQuery = query as Mock;
 const mockQueryOne = queryOne as Mock;

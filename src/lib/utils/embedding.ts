@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { getGeminiEnv } from "@/config/env";
+import type { IEmbeddingService } from "@/features/pipeline/services/router";
 
 const EMBEDDING_MODEL = "gemini-embedding-001";
 const EMBEDDING_DIMENSIONS = 768;
@@ -9,16 +10,6 @@ const OVERLAP_TOKENS = 64;
 const TARGET_CHARS = TARGET_TOKENS * CHARS_PER_TOKEN;
 const OVERLAP_CHARS = OVERLAP_TOKENS * CHARS_PER_TOKEN;
 const BATCH_LIMIT = 100;
-
-let ai: GoogleGenAI | null = null;
-
-function getGeminiClient(): GoogleGenAI {
-  if (!ai) {
-    const { GEMINI_API_KEY } = getGeminiEnv();
-    ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-  }
-  return ai;
-}
 
 export interface PolicyChunk {
   sourceFile: string;
@@ -64,31 +55,47 @@ export function chunkPolicy(sourceFile: string, text: string): PolicyChunk[] {
   return chunks;
 }
 
-export async function embedTexts(texts: string[]): Promise<number[][]> {
-  if (texts.length === 0) return [];
-  const results: number[][] = [];
-  const client = getGeminiClient();
+export class GeminiEmbeddingService implements IEmbeddingService {
+  private client: GoogleGenAI;
 
-  for (let i = 0; i < texts.length; i += BATCH_LIMIT) {
-    const batch = texts.slice(i, i + BATCH_LIMIT);
-    const embeddings = await Promise.all(
-      batch.map(async (text) => {
-        const res = await client.models.embedContent({
-          model: EMBEDDING_MODEL,
-          contents: text,
-          config: { outputDimensionality: EMBEDDING_DIMENSIONS },
-        });
-        const values = res.embeddings?.[0]?.values;
-        if (!values || values.length === 0) {
-          throw new Error(
-            `Embedding API returned no values (model=${EMBEDDING_MODEL}, textLength=${text.length})`,
-          );
-        }
-        return values;
-      }),
-    );
-    results.push(...embeddings);
+  constructor() {
+    const { GEMINI_API_KEY } = getGeminiEnv();
+    this.client = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
   }
 
-  return results;
+  async embedTexts(texts: string[]): Promise<number[][]> {
+    if (texts.length === 0) return [];
+    const results: number[][] = [];
+
+    for (let i = 0; i < texts.length; i += BATCH_LIMIT) {
+      const batch = texts.slice(i, i + BATCH_LIMIT);
+      const embeddings = await Promise.all(
+        batch.map(async (text) => {
+          const res = await this.client.models.embedContent({
+            model: EMBEDDING_MODEL,
+            contents: text,
+            config: { outputDimensionality: EMBEDDING_DIMENSIONS },
+          });
+          const values = res.embeddings?.[0]?.values;
+          if (!values || values.length === 0) {
+            throw new Error(
+              `Embedding API returned no values (model=${EMBEDDING_MODEL}, textLength=${text.length})`,
+            );
+          }
+          return values;
+        }),
+      );
+      results.push(...embeddings);
+    }
+
+    return results;
+  }
+}
+
+/**
+ * Standalone function for seed scripts that don't use DI.
+ */
+export async function embedTexts(texts: string[]): Promise<number[][]> {
+  const service = new GeminiEmbeddingService();
+  return service.embedTexts(texts);
 }

@@ -1,4 +1,4 @@
-import { query, executeInTransaction } from "@/lib/db/pool";
+import { query, executeInTransaction } from "@/lib/db/client";
 
 const CREATE_MIGRATIONS_TABLE_SQL = `CREATE TABLE IF NOT EXISTS _migrations (
   name TEXT PRIMARY KEY,

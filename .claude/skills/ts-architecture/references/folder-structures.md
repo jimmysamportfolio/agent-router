@@ -27,11 +27,9 @@ src/
 ├── features/                         # Domain modules
 │   └── <domain>/
 │       ├── types.ts
-│       ├── services/
-│       ├── repositories/
+│       ├── services/                 # Services + co-located repos
 │       ├── components/
 │       ├── hooks/
-│       ├── validators/
 │       └── index.ts                  # Barrel export
 │
 ├── components/                       # Shared UI only
@@ -70,11 +68,9 @@ src/
 ├── features/
 │   └── <domain>/
 │       ├── types.ts
-│       ├── services/
-│       ├── repositories/
+│       ├── services/                 # Services + co-located repos
 │       ├── controllers/              # Request → service → response
 │       ├── routes/                   # Wire URLs to controllers
-│       ├── validators/
 │       ├── middleware/               # Feature-specific middleware
 │       └── index.ts
 │
