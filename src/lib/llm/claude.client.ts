@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { toJSONSchema, type ZodType } from "zod";
 import { InvariantError } from "@/lib/errors";
 import { redactPersonalInformation } from "@/features/pipeline/guardrails/redactor";
+import { DEFAULT_LLM_MAX_TOKENS } from "@/config/constants";
 import type {
   ILLMService,
   LLMCallOptions,
@@ -13,7 +14,6 @@ const MODEL = "claude-sonnet-4-5-20250929";
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
 const TIMEOUT_MS = 60_000;
-const DEFAULT_MAX_TOKENS = 1024;
 
 export class LLMService implements ILLMService {
   private readonly client: Anthropic;
@@ -37,7 +37,7 @@ export class LLMService implements ILLMService {
     const response = await this.withRetry(() =>
       this.client.messages.create({
         model: MODEL,
-        max_tokens: options?.maxTokens ?? DEFAULT_MAX_TOKENS,
+        max_tokens: options?.maxTokens ?? DEFAULT_LLM_MAX_TOKENS,
         system: systemPrompt,
         messages: [{ role: "user", content: redactedUserPrompt }],
       }),
@@ -65,7 +65,7 @@ export class LLMService implements ILLMService {
     const response = await this.withRetry(() =>
       this.client.messages.create({
         model: MODEL,
-        max_tokens: options?.maxTokens ?? DEFAULT_MAX_TOKENS,
+        max_tokens: options?.maxTokens ?? DEFAULT_LLM_MAX_TOKENS,
         system: systemPrompt,
         messages: [{ role: "user", content: redactedUserPrompt }],
         tools: [

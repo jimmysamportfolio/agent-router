@@ -1,14 +1,59 @@
-import { REVIEW_QUEUE_NAME, type ReviewJobData } from "@/lib/queue";
+import { executeInTransaction } from "@/lib/db/client";
 import { createContainer } from "@/server/container";
-import { createQueueProvider } from "@/server/queue";
+import {
+  REVIEW_QUEUE_NAME,
+  type ReviewJobData,
+  createQueueProvider,
+} from "@/server/queue";
 
 const provider = createQueueProvider();
 const container = createContainer((data) => provider.enqueue(data));
 
 async function handleJob(data: ReviewJobData): Promise<void> {
-  console.log(`[Worker] Processing review ${data.reviewId}`);
-  await container.pipeline.processReview(data.reviewId, data.tenantId);
-  console.log(`[Worker] Completed review ${data.reviewId}`);
+  const { reviewId, tenantId } = data;
+  console.log(`[Worker] Processing review ${reviewId}`);
+
+  await container.reviewRepo.updateStatus(reviewId, "routing");
+
+  try {
+    const review = await container.reviewRepo.getById(reviewId);
+    if (!review) throw new Error(`Review not found: ${reviewId}`);
+
+    const listing = await container.listingRepo.getById(review.listing_id);
+    if (!listing) throw new Error(`Listing not found: ${review.listing_id}`);
+
+    const result = await container.pipeline.process(listing, tenantId);
+
+    await executeInTransaction(async (client) => {
+      await container.reviewRepo.updateVerdict(
+        reviewId,
+        result.verdict,
+        result.confidence,
+        result.explanation,
+        { traces: result.traces },
+        client,
+      );
+      if (result.violations.length > 0) {
+        await container.violationRepo.insertMany(
+          reviewId,
+          result.violations,
+          client,
+        );
+      }
+    });
+
+    console.log(`[Worker] Completed review ${reviewId}`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    try {
+      await container.reviewRepo.updateStatus(reviewId, "failed", {
+        error: msg,
+      });
+    } catch {
+      console.error(`Failed to update review ${reviewId} to failed status`);
+    }
+    throw err;
+  }
 }
 
 const workerHandle = provider.createWorker(handleJob);

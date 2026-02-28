@@ -1,33 +1,18 @@
-import type { ListingRow, ReviewRow, Severity, Verdict } from "@/types";
+import type { ListingRow, Severity, Verdict } from "@/types";
 import type { TokenTracker } from "@/features/pipeline/guardrails/budget";
 import type { PolicyMatch } from "@/features/policies/types";
 
-// ── LLM Types ───────────────────────────────────────────────────────
-
-export interface LLMCallOptions {
-  maxTokens?: number;
-  skipRedaction?: boolean;
-}
-
-export interface LLMTextResult {
-  text: string;
-  tokensUsed: number;
-}
-
-export interface LLMStructuredResult<T> {
-  data: T;
-  tokensUsed: number;
-}
-
 // ── Pipeline Types ──────────────────────────────────────────────────
 
-export interface ReviewWithListing {
-  review: ReviewRow;
-  listing: ListingRow;
+export interface PipelineResult {
+  verdict: Verdict;
+  confidence: number;
+  explanation: string;
+  violations: AgentViolation[];
+  traces: NodeTrace[];
 }
 
 export interface AgentInput {
-  reviewId: string;
   listing: ListingRow;
   tokenTracker?: TokenTracker;
 }

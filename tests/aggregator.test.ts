@@ -1,4 +1,4 @@
-import { aggregateResults } from "@/features/pipeline/services/aggregator";
+import { AggregatorService } from "@/features/pipeline/services/aggregator";
 import type { SubAgentResult } from "@/features/pipeline/types";
 
 function makeResult(overrides: Partial<SubAgentResult> = {}): SubAgentResult {
@@ -12,14 +12,20 @@ function makeResult(overrides: Partial<SubAgentResult> = {}): SubAgentResult {
   };
 }
 
-describe("aggregateResults", () => {
+describe("AggregatorService", () => {
+  let aggregator: AggregatorService;
+
+  beforeEach(() => {
+    aggregator = new AggregatorService();
+  });
+
   it("returns approved when all agents approve with high confidence", () => {
     const results = [
       makeResult({ agentName: "a", confidence: 0.95 }),
       makeResult({ agentName: "b", confidence: 0.9 }),
       makeResult({ agentName: "c", confidence: 0.85 }),
     ];
-    const decision = aggregateResults(results);
+    const decision = aggregator.aggregate(results);
     expect(decision.verdict).toBe("approved");
     expect(decision.confidence).toBeGreaterThan(0.8);
   });
@@ -40,7 +46,7 @@ describe("aggregateResults", () => {
         ],
       }),
     ];
-    const decision = aggregateResults(results);
+    const decision = aggregator.aggregate(results);
     expect(decision.verdict).toBe("rejected");
     expect(decision.violations).toEqual(
       expect.arrayContaining([
@@ -58,7 +64,7 @@ describe("aggregateResults", () => {
         confidence: 0.85,
       }),
     ];
-    const decision = aggregateResults(results);
+    const decision = aggregator.aggregate(results);
     expect(decision.verdict).toBe("escalated");
     expect(decision.confidence).toBeCloseTo((0.95 + 0.85) / 2);
   });
@@ -68,7 +74,7 @@ describe("aggregateResults", () => {
       makeResult({ agentName: "a" }),
       makeResult({ agentName: "b", verdict: "rejected", confidence: 0.6 }),
     ];
-    const decision = aggregateResults(results);
+    const decision = aggregator.aggregate(results);
     expect(decision.verdict).toBe("escalated");
   });
 
@@ -77,12 +83,12 @@ describe("aggregateResults", () => {
       makeResult({ agentName: "a", confidence: 0.7 }),
       makeResult({ agentName: "b", confidence: 0.75 }),
     ];
-    const decision = aggregateResults(results);
+    const decision = aggregator.aggregate(results);
     expect(decision.verdict).toBe("escalated");
   });
 
   it("throws on empty results", () => {
-    expect(() => aggregateResults([])).toThrow(
+    expect(() => aggregator.aggregate([])).toThrow(
       "Cannot aggregate empty results",
     );
   });
@@ -92,7 +98,7 @@ describe("aggregateResults", () => {
       makeResult({ agentName: "a" }),
       makeResult({ agentName: "b", verdict: "rejected", confidence: 0.7 }),
     ];
-    expect(aggregateResults(results).verdict).toBe("escalated");
+    expect(aggregator.aggregate(results).verdict).toBe("escalated");
   });
 
   it("returns escalated when all approved with avg confidence exactly 0.8 (exclusive boundary)", () => {
@@ -100,7 +106,7 @@ describe("aggregateResults", () => {
       makeResult({ agentName: "a", confidence: 0.8 }),
       makeResult({ agentName: "b", confidence: 0.8 }),
     ];
-    expect(aggregateResults(results).verdict).toBe("escalated");
+    expect(aggregator.aggregate(results).verdict).toBe("escalated");
   });
 
   it("calculates average confidence from rejecting agents for rejected verdict", () => {
@@ -109,7 +115,7 @@ describe("aggregateResults", () => {
       makeResult({ agentName: "b", verdict: "rejected", confidence: 0.8 }),
       makeResult({ agentName: "c", verdict: "rejected", confidence: 0.9 }),
     ];
-    const decision = aggregateResults(results);
+    const decision = aggregator.aggregate(results);
     expect(decision.verdict).toBe("rejected");
     expect(decision.confidence).toBeCloseTo(0.85);
   });

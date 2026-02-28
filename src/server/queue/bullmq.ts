@@ -1,11 +1,12 @@
 import IORedis from "ioredis";
 import { Queue, Worker, type ConnectionOptions } from "bullmq";
-import { REVIEW_QUEUE_NAME, type ReviewJobData } from "@/lib/queue";
 import { InvariantError } from "@/lib/errors";
 import { getRedisEnv } from "@/config/env";
-import type {
-  QueueProvider,
-  QueueWorkerHandle,
+import {
+  REVIEW_QUEUE_NAME,
+  type ReviewJobData,
+  type QueueProvider,
+  type QueueWorkerHandle,
 } from "@/server/queue/queue.interface";
 
 const WORKER_CONCURRENCY = 3;

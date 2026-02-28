@@ -59,14 +59,16 @@ Code placement:
 | Code | Location |
 |------|----------|
 | Business logic | `features/<domain>/services/` |
-| Data access | `features/<domain>/repositories/` or `lib/db/repositories/` |
+| Data access | Co-located in `features/<domain>/services/<service>.ts` or standalone `features/<domain>/<repo>.ts` |
 | Domain UI components | `features/<domain>/components/` |
 | Shared UI components | `components/ui/` |
 | Domain hooks | `features/<domain>/hooks/` |
 | Domain errors | `features/<domain>/errors.ts` |
 | Shared errors | `lib/errors/` |
 | Shared utilities | `lib/utils/` |
-| Validation schemas | `features/<domain>/validators/` |
+| Validation schemas | `lib/validation.ts` or inline in feature |
+
+Only truly shared code (used by 2+ features) lives in `lib/`. Feature-specific code always lives in the feature folder.
 
 ## Barrel Exports & Feature Boundaries
 

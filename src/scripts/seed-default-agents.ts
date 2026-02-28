@@ -1,7 +1,6 @@
-import { getPool } from "@/lib/db/pool";
-import { AgentConfigRepository } from "@/lib/db/repositories/agent-config.repository";
-
-const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
+import { getPool } from "@/lib/db/client";
+import { AgentConfigRepository } from "@/features/pipeline/services/router";
+import { DEFAULT_TENANT_ID } from "@/config/constants";
 
 const DEFAULT_AGENT_CONFIGS = [
   {

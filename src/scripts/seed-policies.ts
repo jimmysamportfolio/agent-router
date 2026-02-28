@@ -1,13 +1,12 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { getPool } from "@/lib/db/pool";
+import { getPool } from "@/lib/db/client";
 import { chunkPolicy, embedTexts } from "@/lib/utils/embedding";
 import { executeInTransaction } from "@/lib/db/client";
 import { ValidationError } from "@/lib/errors";
+import { DEFAULT_TENANT_ID } from "@/config/constants";
 import type { PolicyChunk } from "@/lib/utils/embedding";
-
-const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
 const PARAMS_PER_GLOBAL_CHUNK = 5;
 const PARAMS_PER_TENANT_CHUNK = 6;

@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { getPool } from "@/lib/db/pool";
+import { getPool } from "@/lib/db/client";
 import {
   ensureMigrationsTable,
   getAppliedMigrations,

@@ -7,23 +7,30 @@ decisions and reusable templates — not general SQL knowledge.
 
 ## File Organization
 
+Repositories live inside their owning feature — co-located in the service file
+(primary pattern) or as a standalone file at the feature root.
+
 ```
 src/
 ├── lib/db/
 │   ├── client.ts              # Pool singleton, typed query helpers
 │   ├── base.repository.ts     # Abstract base with shared DB operations
-│   ├── transaction.ts         # Transaction helper
 │   └── migrations/
 │       ├── 001_init.sql
 │       └── 002_add_orders.sql
 ├── features/<domain>/
-│   └── repositories/
-│       └── <domain>.repository.ts
+│   ├── services/
+│   │   └── order.service.ts   # Service + co-located OrderRepository
+│   └── scan.repository.ts     # Standalone repo (no owning service)
 ├── scripts/
 │   └── migrate.ts
 └── types/
     └── db.ts                  # Row types matching tables
 ```
+
+Only truly shared DB infrastructure (`client.ts`, `base.repository.ts`,
+migrations) lives in `lib/db/`. Feature-specific data access always lives
+in the feature folder.
 
 ---
 
@@ -91,41 +98,38 @@ via `withClient()`.
 
 ```typescript
 // lib/db/base.repository.ts
-import { pool, query, queryOne } from "./client";
+import { query, queryOne } from "./client";
 import type { PoolClient, QueryResultRow } from "pg";
 
 export abstract class BaseRepository {
-  protected client?: PoolClient;
-
-  /** Returns a copy of this repository bound to a transaction client. */
-  withClient(client: PoolClient): this {
-    const bound = Object.create(this) as this;
-    bound.client = client;
-    return bound;
-  }
-
   protected async query<T extends QueryResultRow>(
     sql: string,
-    params?: unknown[]
+    params?: unknown[],
+    client?: PoolClient,
   ): Promise<T[]> {
-    if (this.client) {
-      const result = await this.client.query<T>(sql, params);
-      return result.rows;
+    if (client) {
+      const { rows } = await client.query<T>(sql, params);
+      return rows;
     }
     return query<T>(sql, params);
   }
 
   protected async queryOne<T extends QueryResultRow>(
     sql: string,
-    params?: unknown[]
-  ): Promise<T | null> {
-    const rows = await this.query<T>(sql, params);
-    return rows[0] ?? null;
+    params?: unknown[],
+    client?: PoolClient,
+  ): Promise<T | undefined> {
+    if (client) {
+      const { rows } = await client.query<T>(sql, params);
+      return rows[0];
+    }
+    return queryOne<T>(sql, params);
   }
 }
 ```
 
-Concrete repositories extend this. Each feature owns its own repository.
+Concrete repositories extend this and pass an optional `client` parameter
+through for transaction support. Each feature owns its own repositories.
 
 ---
 

@@ -1,4 +1,10 @@
-import type { ReviewJobData } from "@/lib/queue";
+export const REVIEW_QUEUE_NAME = "review-pipeline";
+
+export interface ReviewJobData {
+  reviewId: string;
+  listingId: string;
+  tenantId: string;
+}
 
 export interface QueueWorkerHandle {
   close(): Promise<void>;
