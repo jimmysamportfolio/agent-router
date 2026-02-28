@@ -1,4 +1,5 @@
-import type { ListingRow, Severity, Verdict } from "@/types";
+import type { ListingRow } from "@/features/listings";
+import type { Severity, Verdict } from "@/types";
 import type { TokenTracker } from "@/features/pipeline/guardrails/budget";
 import type { PolicyMatch } from "@/features/policies";
 

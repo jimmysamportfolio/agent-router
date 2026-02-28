@@ -9,17 +9,6 @@ export type Verdict = "approved" | "rejected" | "escalated";
 
 export type Severity = "low" | "medium" | "high" | "critical";
 
-export interface ListingRow {
-  id: string;
-  tenant_id: string;
-  title: string;
-  description: string;
-  category: string;
-  image_urls: string[] | null;
-  metadata: Record<string, unknown> | null;
-  created_at: Date;
-}
-
 export interface ReviewRow {
   id: string;
   listing_id: string;

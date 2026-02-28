@@ -1,5 +1,5 @@
 import type { ILLMService } from "@/lib/llm/llm.interface";
-import type { ListingRow } from "@/types";
+import type { ListingRow } from "@/features/listings";
 import type {
   AggregatedDecision,
   ExplainerInput,

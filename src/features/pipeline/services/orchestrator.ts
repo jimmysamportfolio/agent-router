@@ -4,7 +4,7 @@ import { TokenTracker } from "@/features/pipeline/guardrails/budget";
 import type { PolicyRouterService } from "@/features/pipeline/services/router";
 import type { IAgentFactory } from "@/features/pipeline/agents/agent.interface";
 import type { ExplainerService } from "@/features/pipeline/services/explainer";
-import type { ListingRow } from "@/types";
+import type { ListingRow } from "@/features/listings";
 import type {
   AgentDispatchPlan,
   AgentInput,

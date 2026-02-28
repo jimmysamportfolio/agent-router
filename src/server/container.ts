@@ -11,10 +11,10 @@ import {
 import {
   ReviewService,
   ReviewRepository,
-  ListingRepository,
   ViolationRepository,
   ScanRepository,
 } from "@/features/reviews";
+import { ListingRepository } from "@/features/listings";
 import { GeminiEmbeddingService } from "@/lib/utils/embedding";
 import { getLlmEnv } from "@/config/env";
 import type { ReviewJobData } from "@/server/queue";

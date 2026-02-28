@@ -1,17 +1,18 @@
 export {
   ReviewService,
   ReviewRepository,
-  ListingRepository,
   ViolationRepository,
 } from "./services/review.service";
 export type {
   EnqueueReviewFn,
   IReviewRepository,
-  IListingRepository,
-  InsertListingInput,
   IViolationRepository,
   AgentViolation,
 } from "./services/review.service";
+export type {
+  IListingRepository,
+  InsertListingInput,
+} from "@/features/listings";
 export { ScanRepository } from "./scan.repository";
 export type { IScanRepository } from "./scan.repository";
 export {

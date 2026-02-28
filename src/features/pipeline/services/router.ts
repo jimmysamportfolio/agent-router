@@ -1,5 +1,5 @@
 import { InvariantError } from "@/lib/errors";
-import type { ListingRow } from "@/types";
+import type { ListingRow } from "@/features/listings";
 import type { AgentDispatchPlan } from "@/features/pipeline/types";
 import type { IEmbeddingService } from "@/lib/utils/embedding";
 import type { IPolicyRepository } from "@/features/policies/policy.repository";
