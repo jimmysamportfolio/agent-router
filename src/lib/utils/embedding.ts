@@ -1,6 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
 import { getGeminiEnv } from "@/config/env";
-import type { IEmbeddingService } from "@/features/pipeline/services/router";
+
+export interface IEmbeddingService {
+  embedTexts(texts: string[]): Promise<number[][]>;
+}
 
 const EMBEDDING_MODEL = "gemini-embedding-001";
 const EMBEDDING_DIMENSIONS = 768;

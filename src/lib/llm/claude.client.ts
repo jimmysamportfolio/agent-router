@@ -30,9 +30,7 @@ export class LLMService implements ILLMService {
     userPrompt: string,
     options?: LLMCallOptions,
   ): Promise<LLMTextResult> {
-    const redactedUserPrompt = options?.skipRedaction
-      ? userPrompt
-      : redactPersonalInformation(userPrompt);
+    const redactedUserPrompt = redactPersonalInformation(userPrompt);
 
     const response = await this.withRetry(() =>
       this.client.messages.create({
@@ -57,9 +55,7 @@ export class LLMService implements ILLMService {
     toolName: string,
     options?: LLMCallOptions,
   ): Promise<LLMStructuredResult<T>> {
-    const redactedUserPrompt = options?.skipRedaction
-      ? userPrompt
-      : redactPersonalInformation(userPrompt);
+    const redactedUserPrompt = redactPersonalInformation(userPrompt);
     const jsonSchema = this.zodToJsonSchema(schema);
 
     const response = await this.withRetry(() =>

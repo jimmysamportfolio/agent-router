@@ -38,15 +38,9 @@ export const agentResultSchema = z.object({
   reasoning: z.string(),
 });
 
-export const agentOptionsSchema = z.object({
-  skipRedaction: z.boolean().optional(),
-  maxTokens: z.number().optional(),
-});
-
 export const createAgentConfigSchema = z.object({
   name: z.string().min(1).max(100),
   displayName: z.string().min(1).max(200),
   systemPromptTemplate: z.string().min(1),
   policySourceFiles: z.array(z.string()).default([]),
-  options: z.record(z.string(), z.unknown()).default({}),
 });

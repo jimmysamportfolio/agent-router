@@ -1,5 +1,5 @@
 import { getPool } from "@/lib/db/client";
-import { AgentConfigRepository } from "@/features/pipeline/services/router";
+import { AgentConfigRepository } from "@/features/pipeline";
 import { DEFAULT_TENANT_ID } from "@/config/constants";
 
 const DEFAULT_AGENT_CONFIGS = [
@@ -22,7 +22,6 @@ Return your analysis as a structured result with verdict, confidence (0-1), any 
 - "escalated" if suspicious but uncertain
 - "approved" if no prohibited items detected`,
     policySourceFiles: ["prohibited-items.md"],
-    options: {},
   },
   {
     name: "disintermediation",
@@ -43,7 +42,6 @@ Return your analysis as a structured result with verdict, confidence (0-1), any 
 - "escalated" if suspicious language but ambiguous
 - "approved" if no disintermediation detected`,
     policySourceFiles: ["disintermediation.md"],
-    options: { skipRedaction: true },
   },
   {
     name: "health-claims",
@@ -65,7 +63,6 @@ Return your analysis as a structured result with verdict, confidence (0-1), any 
 - "escalated" if health-adjacent language that may need review
 - "approved" if no problematic health claims detected`,
     policySourceFiles: ["health-claims.md"],
-    options: {},
   },
 ];
 

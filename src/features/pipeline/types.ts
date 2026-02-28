@@ -1,8 +1,6 @@
 import type { ListingRow, Severity, Verdict } from "@/types";
 import type { TokenTracker } from "@/features/pipeline/guardrails/budget";
-import type { PolicyMatch } from "@/features/policies/types";
-
-// ── Pipeline Types ──────────────────────────────────────────────────
+import type { PolicyMatch } from "@/features/policies";
 
 export interface PipelineResult {
   verdict: Verdict;
@@ -63,12 +61,6 @@ export interface AgentConfig {
   displayName: string;
   systemPromptTemplate: string;
   policySourceFiles: string[];
-  options: AgentOptions;
-}
-
-export interface AgentOptions {
-  skipRedaction?: boolean;
-  maxTokens?: number;
 }
 
 export interface AgentDispatchPlan {

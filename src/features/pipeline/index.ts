@@ -1,14 +1,9 @@
 export { PipelineService } from "./services/orchestrator";
-export {
-  PolicyRouterService,
-  PolicyRepository,
-  AgentConfigRepository,
-} from "./services/router";
-export type {
-  IEmbeddingService,
-  IPolicyRepository,
-  IAgentConfigRepository,
-} from "./services/router";
+export { PolicyRouterService } from "./services/router";
+export { PolicyRepository, type IPolicyRepository } from "@/features/policies";
+export { AgentConfigRepository } from "./agent-config.repository";
+export type { IEmbeddingService } from "@/lib/utils/embedding";
+export type { IAgentConfigRepository } from "./agent-config.repository";
 export { AgentFactoryService } from "./agents/factory";
 export { ExplainerService } from "./services/explainer";
 export { AggregatorService } from "./services/aggregator";

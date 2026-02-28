@@ -44,15 +44,18 @@ Read the relevant reference before starting work:
 
 ## File & Type Placement
 
-Types live as close to their consumers as possible:
+Types live as close to their consumers as possible. **Avoid `types.ts` when types are not shared across multiple files within the feature** — co-locate with the code that defines or uses them.
 
 | Type | Location |
 |------|----------|
-| Domain-specific (Order, User) | `features/<domain>/types.ts` |
+| Domain-specific, shared within feature | `features/<domain>/types.ts` (only when 2+ files in the feature need it) |
+| Domain-specific, single consumer | Co-locate in the file that uses it (e.g. `policy.repository.ts`) |
 | Shared contracts (ApiResponse) | `types/api.ts` |
 | Shared primitives (ID, Timestamp) | `types/common.ts` |
 | Infrastructure contracts (Cache) | `lib/<concern>/<n>.interface.ts` |
 | DB row types | `types/db.ts` or within feature |
+
+**Rule of thumb:** If a feature has only one implementation file (e.g. `policy.repository.ts`), put its types there and re-export from `index.ts`. Add `types.ts` only when multiple files within the feature share types.
 
 Code placement:
 
@@ -76,10 +79,16 @@ Every feature has an `index.ts` that controls its public API. Other features
 import only from this barrel — never reach into internals.
 
 ```typescript
-// features/orders/index.ts — public API
+// features/orders/index.ts — public API (types from types.ts when shared across files)
 export type { Order, OrderStatus } from "./types";
 export { OrderService } from "./services/order.service";
 export { OrderCard } from "./components/OrderCard";
+```
+
+```typescript
+// features/policies/index.ts — slim feature: types co-located in repository
+export type { PolicyMatch } from "./policy.repository";
+export { PolicyRepository, type IPolicyRepository } from "./policy.repository";
 ```
 
 ```typescript
