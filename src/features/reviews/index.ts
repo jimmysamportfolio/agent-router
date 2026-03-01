@@ -1,20 +1,21 @@
-export {
-  ReviewService,
-  ReviewRepository,
-  ViolationRepository,
-} from "./services/review.service";
+export { ReviewService } from "./services/review-service";
 export type {
   EnqueueReviewFn,
-  IReviewRepository,
+  SubmitListingInput,
+} from "./services/review-service";
+export { ReviewRepository } from "./repositories/review-repository";
+export type { IReviewRepository } from "./repositories/review-repository";
+export { ViolationRepository } from "./repositories/violation-repository";
+export type {
   IViolationRepository,
   AgentViolation,
-} from "./services/review.service";
+} from "./repositories/violation-repository";
 export type {
   IListingRepository,
   InsertListingInput,
 } from "@/features/listings";
-export { ScanRepository } from "./scan.repository";
-export type { IScanRepository } from "./scan.repository";
+export { ScanRepository } from "./repositories/scan-repository";
+export type { IScanRepository } from "./repositories/scan-repository";
 export {
   reviewStatusSchema,
   verdictSchema,

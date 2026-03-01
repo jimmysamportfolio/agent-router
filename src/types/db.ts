@@ -1,34 +1,3 @@
-export type ReviewStatus =
-  | "pending"
-  | "routing"
-  | "complete"
-  | "escalated"
-  | "failed";
-
-export type Verdict = "approved" | "rejected" | "escalated";
-
-export type Severity = "low" | "medium" | "high" | "critical";
-
-export interface ReviewRow {
-  id: string;
-  listing_id: string;
-  status: ReviewStatus;
-  verdict: Verdict | null;
-  confidence: number | null;
-  explanation: string | null;
-  trace: Record<string, unknown> | null;
-  created_at: Date;
-  updated_at: Date;
-}
-
-export interface ViolationRow {
-  id: string;
-  review_id: string;
-  policy_section: string;
-  severity: Severity;
-  description: string;
-}
-
 export interface TenantRow {
   id: string;
   name: string;

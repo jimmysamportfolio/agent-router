@@ -4,6 +4,7 @@ export interface SubmitListingInput {
   title: string;
   description: string;
   category: string;
+  tenantId: string;
   imageUrls?: string[] | undefined;
   metadata?: Record<string, unknown> | undefined;
 }

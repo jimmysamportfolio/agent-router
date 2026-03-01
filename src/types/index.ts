@@ -1,9 +1,4 @@
 export type {
-  ReviewStatus,
-  Verdict,
-  Severity,
-  ReviewRow,
-  ViolationRow,
   TenantRow,
   AgentConfigRow,
   TenantPolicyChunkRow,
