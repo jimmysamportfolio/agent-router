@@ -4,16 +4,15 @@ import { InvariantError } from "@/lib/errors";
 import { getRedisEnv } from "@/config/env";
 import {
   REVIEW_QUEUE_NAME,
-  type ReviewJobData,
   type QueueProvider,
   type QueueWorkerHandle,
-} from "@/server/queue/queue.interface";
+} from "@/lib/queue/queue.interface";
 
 const WORKER_CONCURRENCY = 3;
 const REMOVE_ON_COMPLETE = 100;
 const REMOVE_ON_FAIL = 500;
 
-export class BullMQProvider implements QueueProvider {
+export class BullMQProvider<T> implements QueueProvider<T> {
   private queueConnection: IORedis | undefined;
   private queue: Queue | undefined;
 
@@ -38,22 +37,20 @@ export class BullMQProvider implements QueueProvider {
     return this.queue;
   }
 
-  async enqueue(data: ReviewJobData): Promise<string> {
-    const job = await this.getQueue().add("process-review", data);
+  async enqueue(data: T): Promise<string> {
+    const job = await this.getQueue().add("process-review", data as object);
     if (!job.id) throw new InvariantError("BullMQ did not assign a job ID");
     return job.id;
   }
 
-  createWorker(
-    handler: (data: ReviewJobData) => Promise<void>,
-  ): QueueWorkerHandle {
+  createWorker(handler: (data: T) => Promise<void>): QueueWorkerHandle {
     const { REDIS_URL } = getRedisEnv();
 
     const workerConnection = new IORedis(REDIS_URL, {
       maxRetriesPerRequest: null,
     });
 
-    const worker = new Worker<ReviewJobData>(
+    const worker = new Worker<T>(
       REVIEW_QUEUE_NAME,
       async (job) => handler(job.data),
       {

@@ -1,43 +1,15 @@
 import { TRPCError } from "@trpc/server";
 import { executeInTransaction } from "@/lib/db/client";
-import type { ReviewJobData } from "@/server/queue";
-import type { ReviewRow, ReviewStatusOutput } from "@/types";
-import type { IReviewRepository } from "@/features/reviews/repositories/review-repository";
+import type { ReviewJobData } from "@/features/reviews/types";
+import type {
+  ReviewRow,
+  IReviewRepository,
+} from "@/features/reviews/repositories/review-repository";
+import type {
+  ReviewStatusOutput,
+  SubmitListingInput,
+} from "@/features/reviews/types";
 import type { IListingRepository } from "@/features/listings";
-
-export type Verdict = "approved" | "rejected" | "escalated";
-
-export interface SubmitListingInput {
-  title: string;
-  description: string;
-  category: string;
-  tenantId: string;
-  imageUrls?: string[];
-  metadata?: Record<string, unknown>;
-}
-
-export interface SubmitListingOutput {
-  reviewId: string;
-}
-
-export interface ReviewRow {
-  id: string;
-  listing_id: string;
-  status: ReviewStatus;
-  verdict: Verdict | null;
-  confidence: number | null;
-  explanation: string | null;
-  trace: Record<string, unknown> | null;
-  created_at: Date;
-  updated_at: Date;
-}
-
-export type ReviewStatus =
-  | "pending"
-  | "routing"
-  | "complete"
-  | "escalated"
-  | "failed";
 
 export type EnqueueReviewFn = (data: ReviewJobData) => Promise<string>;
 

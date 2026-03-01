@@ -2,6 +2,7 @@ import type { ZodType } from "zod";
 
 export interface LLMCallOptions {
   maxTokens?: number;
+  skipRedaction?: boolean;
 }
 
 export interface LLMTextResult {

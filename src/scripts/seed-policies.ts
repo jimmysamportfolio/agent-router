@@ -2,11 +2,12 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { getPool } from "@/lib/db/client";
-import { chunkPolicy, embedTexts } from "@/lib/utils/embedding";
+import { chunkPolicy } from "@/features/policies/services/chunker";
+import { embedTexts } from "@/lib/utils/embedding";
 import { executeInTransaction } from "@/lib/db/client";
 import { ValidationError } from "@/lib/errors";
 import { DEFAULT_TENANT_ID } from "@/config/constants";
-import type { PolicyChunk } from "@/lib/utils/embedding";
+import type { PolicyChunk } from "@/features/policies/types";
 
 const PARAMS_PER_GLOBAL_CHUNK = 5;
 const PARAMS_PER_TENANT_CHUNK = 6;

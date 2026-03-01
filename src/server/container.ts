@@ -2,12 +2,12 @@ import { LLMService } from "@/lib/llm";
 import {
   PipelineService,
   PolicyRouterService,
-  PolicyRepository,
   AgentConfigRepository,
   AgentFactoryService,
   ExplainerService,
   AggregatorService,
 } from "@/features/pipeline";
+import { PolicyRepository } from "@/features/policies";
 import {
   ReviewService,
   ReviewRepository,
@@ -17,7 +17,7 @@ import {
 import { ListingRepository } from "@/features/listings";
 import { GeminiEmbeddingService } from "@/lib/utils/embedding";
 import { getLlmEnv } from "@/config/env";
-import type { ReviewJobData } from "@/server/queue";
+import type { ReviewJobData } from "@/features/reviews/types";
 
 export type EnqueueFn = (data: ReviewJobData) => Promise<string>;
 

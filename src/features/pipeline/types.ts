@@ -1,7 +1,21 @@
 import type { ListingRow } from "@/features/listings";
-import type { Severity, Verdict } from "@/types";
 import type { TokenTracker } from "@/features/pipeline/guardrails/budget";
 import type { PolicyMatch } from "@/features/policies";
+import type { Verdict } from "@/features/reviews/repositories/review-repository";
+import type { Severity } from "@/features/reviews/repositories/violation-repository";
+
+export interface AgentConfigRow {
+  id: string;
+  tenant_id: string;
+  name: string;
+  display_name: string;
+  system_prompt_template: string;
+  policy_source_files: string[];
+  options: Record<string, unknown>;
+  is_active: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
 
 export interface PipelineResult {
   verdict: Verdict;
@@ -62,6 +76,7 @@ export interface AgentConfig {
   displayName: string;
   systemPromptTemplate: string;
   policySourceFiles: string[];
+  options: Record<string, unknown>;
 }
 
 export interface AgentDispatchPlan {

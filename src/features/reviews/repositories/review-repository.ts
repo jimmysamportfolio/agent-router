@@ -1,7 +1,27 @@
 import { BaseRepository } from "@/lib/db/base.repository";
 import { DatabaseError } from "@/lib/errors";
-import type { ReviewRow, ReviewStatus, Verdict } from "@/types";
 import { PoolClient } from "pg";
+
+export interface ReviewRow {
+  id: string;
+  listing_id: string;
+  status: ReviewStatus;
+  verdict: Verdict | null;
+  confidence: number | null;
+  explanation: string | null;
+  trace: Record<string, unknown> | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export type ReviewStatus =
+  | "pending"
+  | "routing"
+  | "complete"
+  | "escalated"
+  | "failed";
+
+export type Verdict = "approved" | "rejected" | "escalated";
 
 export interface IReviewRepository {
   insert(listingId: string, client?: PoolClient): Promise<ReviewRow>;

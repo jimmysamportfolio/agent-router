@@ -1,6 +1,6 @@
 import { BaseRepository } from "@/lib/db/base.repository";
 import { DatabaseError } from "@/lib/errors";
-import type { AgentConfigRow } from "@/types";
+import type { AgentConfigRow } from "@/features/pipeline/types";
 import type { AgentConfig } from "@/features/pipeline/types";
 
 export interface IAgentConfigRepository {
@@ -42,6 +42,7 @@ function toAgentConfig(row: AgentConfigRow): AgentConfig {
     displayName: row.display_name,
     systemPromptTemplate: row.system_prompt_template,
     policySourceFiles: row.policy_source_files,
+    options: row.options,
   };
 }
 

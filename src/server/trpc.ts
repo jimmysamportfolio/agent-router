@@ -1,6 +1,6 @@
 import { initTRPC } from "@trpc/server";
 import { createContainer, type Container } from "@/server/container";
-import { createQueueProvider } from "@/server/queue";
+import { createQueueProvider } from "@/lib/queue";
 
 let container: Container | undefined;
 let containerFactory: typeof createContainer = createContainer;

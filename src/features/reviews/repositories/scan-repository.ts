@@ -1,4 +1,5 @@
-import type { ScanResultOutput, ViolationRow } from "@/types";
+import type { ScanResultOutput } from "@/features/reviews/types";
+import type { ViolationRow } from "@/features/reviews/repositories/violation-repository";
 import { BaseRepository } from "@/lib/db/base.repository";
 import {
   reviewStatusSchema,
