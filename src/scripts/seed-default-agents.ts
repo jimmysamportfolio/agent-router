@@ -1,68 +1,36 @@
 import { getPool } from "@/lib/db/client";
-import { AgentConfigRepository } from "@/features/pipeline";
+import {
+  AgentConfigRepository,
+  AgentFactoryService,
+} from "@/features/pipeline";
 import { DEFAULT_TENANT_ID } from "@/config/constants";
+
+const defaultTemplate = AgentFactoryService.getDefaultSystemPromptTemplate();
 
 const DEFAULT_AGENT_CONFIGS = [
   {
     name: "prohibited",
     displayName: "Prohibited Items",
-    systemPromptTemplate: `You are a marketplace policy compliance agent specializing in prohibited items detection.
-
-Your job is to analyze listings for violations of prohibited items policies:
-- §1.1 Weapons and Ammunition: firearms, explosives, ammunition, replicas, accessories (silencers, bump stocks)
-- §1.2 Controlled Substances: drugs, drug paraphernalia, prescription medications, precursor chemicals
-- §1.3 Hazardous Materials: asbestos, lead paint, banned pesticides, recalled products, unlabeled chemicals
-- §1.4 Stolen Goods: items suspected stolen, removed serial numbers, no provenance
-- §1.5 Human Remains and Protected Wildlife: organs, CITES-banned products, ivory, exotic leathers
-
-{{POLICY_CONTEXT}}
-
-Return your analysis as a structured result with verdict, confidence (0-1), any violations found, and reasoning.
-- "rejected" if clear policy violation with high confidence
-- "escalated" if suspicious but uncertain
-- "approved" if no prohibited items detected`,
-    policySourceFiles: ["prohibited-items.md"],
+    systemPromptTemplate: defaultTemplate,
+    policySourceFiles: ["prohibited_items.md"],
   },
   {
-    name: "disintermediation",
-    displayName: "Disintermediation",
-    systemPromptTemplate: `You are a marketplace policy compliance agent specializing in disintermediation detection.
-
-Your job is to analyze listings for attempts to move transactions off-platform:
-- Direct contact information: email addresses, phone numbers, social media handles
-- Payment platform references: Venmo, PayPal, Zelle, CashApp, cryptocurrency wallets
-- Off-platform language: "contact me directly", "DM for price", "text me", "message me on..."
-- External links: links to personal websites, other marketplaces, or payment pages
-- §4.6 Prohibited Listing Practices: contact information designed to circumvent marketplace transactions
-
-{{POLICY_CONTEXT}}
-
-Return your analysis as a structured result with verdict, confidence (0-1), any violations found, and reasoning.
-- "rejected" if clear off-platform transaction attempt
-- "escalated" if suspicious language but ambiguous
-- "approved" if no disintermediation detected`,
-    policySourceFiles: ["disintermediation.md"],
+    name: "restricted-categories",
+    displayName: "Restricted Categories",
+    systemPromptTemplate: defaultTemplate,
+    policySourceFiles: ["restricted_categories.md"],
   },
   {
-    name: "health-claims",
-    displayName: "Health Claims",
-    systemPromptTemplate: `You are a marketplace policy compliance agent specializing in health and medical claims detection.
-
-Your job is to analyze listings for unapproved health and medical claims:
-- §3.1 Supplements making unapproved medical claims (e.g., "cures cancer", "treats diabetes")
-- §3.2 Therapeutic claims without regulatory approval ("clinically proven", "doctor recommended" without substantiation)
-- §3.3 Prescription-only devices listed without seller verification
-- §3.5 Supplements with banned substances or missing ingredient lists
-- FDA compliance: false claims of FDA approval or clearance
-- Miracle cure language: "guaranteed results", "100% effective", "revolutionary treatment"
-
-{{POLICY_CONTEXT}}
-
-Return your analysis as a structured result with verdict, confidence (0-1), any violations found, and reasoning.
-- "rejected" if clear unapproved health claims
-- "escalated" if health-adjacent language that may need review
-- "approved" if no problematic health claims detected`,
-    policySourceFiles: ["health-claims.md"],
+    name: "quality-standards",
+    displayName: "Quality Standards",
+    systemPromptTemplate: defaultTemplate,
+    policySourceFiles: ["quality_standards.md"],
+  },
+  {
+    name: "counterfeit",
+    displayName: "Counterfeit Items",
+    systemPromptTemplate: defaultTemplate,
+    policySourceFiles: ["counterfeit_items.md"],
   },
 ];
 

@@ -1,4 +1,4 @@
-import { LLMService } from "@/lib/llm";
+import { GeminiLLMService } from "@/lib/llm";
 import {
   PipelineService,
   PolicyRouterService,
@@ -16,7 +16,7 @@ import {
 } from "@/features/reviews";
 import { ListingRepository } from "@/features/listings";
 import { GeminiEmbeddingService } from "@/lib/utils/embedding";
-import { getLlmEnv } from "@/config/env";
+import { getGeminiEnv } from "@/config/env";
 import type { ReviewJobData } from "@/features/reviews/types";
 
 export type EnqueueFn = (data: ReviewJobData) => Promise<string>;
@@ -31,8 +31,8 @@ export interface Container {
 }
 
 export function createContainer(enqueueReview: EnqueueFn): Container {
-  const { ANTHROPIC_API_KEY } = getLlmEnv();
-  const llmService = new LLMService(ANTHROPIC_API_KEY);
+  const { GEMINI_API_KEY } = getGeminiEnv();
+  const llmService = new GeminiLLMService(GEMINI_API_KEY);
   const embeddingService = new GeminiEmbeddingService();
 
   // Repositories

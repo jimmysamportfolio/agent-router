@@ -5,3 +5,4 @@ export type {
   LLMStructuredResult,
 } from "./llm.interface";
 export { LLMService } from "./claude.client";
+export { GeminiLLMService } from "./gemini.client";

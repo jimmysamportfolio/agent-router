@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI } from "@google/genai";
 import { toJSONSchema, type ZodType } from "zod";
 import { InvariantError } from "@/lib/errors";
 import { redactPersonalInformation } from "@/features/pipeline/guardrails/redactor";
@@ -9,20 +9,16 @@ import type {
   LLMStructuredResult,
 } from "@/lib/llm/llm.interface";
 
-const MODEL = "claude-sonnet-4-5-20250929";
+const MODEL = "gemini-2.0-flash";
 const DEFAULT_LLM_MAX_TOKENS = 1024;
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
-const TIMEOUT_MS = 60_000;
 
-export class LLMService implements ILLMService {
-  private readonly client: Anthropic;
+export class GeminiLLMService implements ILLMService {
+  private readonly client: GoogleGenAI;
 
   constructor(apiKey: string) {
-    this.client = new Anthropic({
-      apiKey,
-      timeout: TIMEOUT_MS,
-    });
+    this.client = new GoogleGenAI({ apiKey });
   }
 
   async callText(
@@ -33,16 +29,23 @@ export class LLMService implements ILLMService {
     const redactedUserPrompt = redactPersonalInformation(userPrompt);
 
     const response = await this.withRetry(() =>
-      this.client.messages.create({
+      this.client.models.generateContent({
         model: MODEL,
-        max_tokens: options?.maxTokens ?? DEFAULT_LLM_MAX_TOKENS,
-        system: systemPrompt,
-        messages: [{ role: "user", content: redactedUserPrompt }],
+        contents: redactedUserPrompt,
+        config: {
+          systemInstruction: systemPrompt,
+          maxOutputTokens: options?.maxTokens ?? DEFAULT_LLM_MAX_TOKENS,
+        },
       }),
     );
 
+    const text = response.text;
+    if (text === undefined || text === "") {
+      throw new InvariantError("LLM response did not contain text content");
+    }
+
     const result: LLMTextResult = {
-      text: this.extractTextContent(response),
+      text,
       tokensUsed: this.calculateTokensUsed(response),
     };
     return result;
@@ -52,31 +55,33 @@ export class LLMService implements ILLMService {
     systemPrompt: string,
     userPrompt: string,
     schema: ZodType<T>,
-    toolName: string,
+    _toolName: string,
     options?: LLMCallOptions,
   ): Promise<LLMStructuredResult<T>> {
     const redactedUserPrompt = redactPersonalInformation(userPrompt);
     const jsonSchema = this.zodToJsonSchema(schema);
 
     const response = await this.withRetry(() =>
-      this.client.messages.create({
+      this.client.models.generateContent({
         model: MODEL,
-        max_tokens: options?.maxTokens ?? DEFAULT_LLM_MAX_TOKENS,
-        system: systemPrompt,
-        messages: [{ role: "user", content: redactedUserPrompt }],
-        tools: [
-          {
-            name: toolName,
-            description: "Submit the structured analysis result",
-            input_schema: jsonSchema as Anthropic.Tool["input_schema"],
-          },
-        ],
-        tool_choice: { type: "tool", name: toolName },
+        contents: redactedUserPrompt,
+        config: {
+          systemInstruction: systemPrompt,
+          maxOutputTokens: options?.maxTokens ?? DEFAULT_LLM_MAX_TOKENS,
+          responseMimeType: "application/json",
+          responseJsonSchema: jsonSchema,
+        },
       }),
     );
 
+    const text = response.text;
+    if (text === undefined || text === "") {
+      throw new InvariantError("LLM response did not contain text content");
+    }
+
+    const parsed = JSON.parse(text) as unknown;
     const result: LLMStructuredResult<T> = {
-      data: schema.parse(this.extractToolInput(response)),
+      data: schema.parse(parsed),
       tokensUsed: this.calculateTokensUsed(response),
     };
     return result;
@@ -89,9 +94,12 @@ export class LLMService implements ILLMService {
         return await fn();
       } catch (err) {
         const isClientError =
-          err instanceof Anthropic.APIError &&
-          err.status < 500 &&
-          err.status !== 429;
+          err != null &&
+          typeof err === "object" &&
+          "status" in err &&
+          typeof (err as { status: number }).status === "number" &&
+          (err as { status: number }).status < 500 &&
+          (err as { status: number }).status !== 429;
         if (isClientError) {
           throw err;
         }
@@ -106,28 +114,11 @@ export class LLMService implements ILLMService {
     throw lastError;
   }
 
-  private extractTextContent(response: Anthropic.Message): string {
-    const textBlock = response.content.find(
-      (block): block is Anthropic.TextBlock => block.type === "text",
-    );
-    if (!textBlock) {
-      throw new InvariantError("LLM response did not contain text content");
-    }
-    return textBlock.text;
-  }
-
-  private extractToolInput(response: Anthropic.Message): unknown {
-    const toolBlock = response.content.find(
-      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
-    );
-    if (!toolBlock) {
-      throw new InvariantError("LLM response did not contain tool_use block");
-    }
-    return toolBlock.input;
-  }
-
-  private calculateTokensUsed(response: Anthropic.Message): number {
-    return response.usage.input_tokens + response.usage.output_tokens;
+  private calculateTokensUsed(response: {
+    usageMetadata?: { totalTokenCount?: number };
+  }): number {
+    const total = response.usageMetadata?.totalTokenCount;
+    return typeof total === "number" ? total : 0;
   }
 
   private zodToJsonSchema(schema: ZodType<unknown>): Record<string, unknown> {
