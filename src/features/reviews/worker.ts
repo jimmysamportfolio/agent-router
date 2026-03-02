@@ -1,12 +1,9 @@
 import { executeInTransaction } from "@/lib/db/client";
 import { createContainer } from "@/server/container";
-import {
-  REVIEW_QUEUE_NAME,
-  type ReviewJobData,
-  createQueueProvider,
-} from "@/server/queue";
+import { REVIEW_QUEUE_NAME, createQueueProvider } from "@/lib/queue";
+import type { ReviewJobData } from "@/features/reviews/types";
 
-const provider = createQueueProvider();
+const provider = createQueueProvider<ReviewJobData>();
 const container = createContainer((data) => provider.enqueue(data));
 
 async function handleJob(data: ReviewJobData): Promise<void> {

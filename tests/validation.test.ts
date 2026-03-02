@@ -1,10 +1,14 @@
-import { submitListingSchema, reviewIdSchema } from "@/lib/validation";
+import {
+  submitListingSchema,
+  reviewIdSchema,
+} from "@/features/reviews/validators";
 
 describe("submitListingSchema", () => {
   const validInput = {
     title: "Test Listing",
     description: "A valid description",
     category: "electronics",
+    tenantId: "550e8400-e29b-41d4-a716-446655440000",
   };
 
   it("accepts valid input with required fields only", () => {

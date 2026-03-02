@@ -1,11 +1,10 @@
 import { vi } from "vitest";
-import type {
-  IAgentConfigRepository,
-  IPolicyRepository,
-  IEmbeddingService,
-} from "@/features/pipeline/services/router";
+import type { IAgentConfigRepository } from "@/features/pipeline/agent-config.repository";
+import type { IPolicyRepository } from "@/features/policies/policy.repository";
+import type { IEmbeddingService } from "@/lib/utils/embedding";
 import { PolicyRouterService } from "@/features/pipeline/services/router";
-import type { AgentConfigRow, ListingRow } from "@/types";
+import type { AgentConfigRow } from "@/features/pipeline/types";
+import type { ListingRow } from "@/features/listings";
 
 function makeListing(overrides: Partial<ListingRow> = {}): ListingRow {
   return {

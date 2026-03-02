@@ -6,8 +6,8 @@ import type {
   AgentInput,
   SubAgentResult,
 } from "@/features/pipeline/types";
-import type { PolicyMatch } from "@/features/policies/types";
-import type { ListingRow } from "@/types";
+import type { PolicyMatch } from "@/features/policies";
+import type { ListingRow } from "@/features/listings";
 
 function makeConfig(overrides: Partial<AgentConfig> = {}): AgentConfig {
   return {

@@ -1,7 +1,6 @@
 import { router } from "./trpc";
 import { healthRouter } from "./routers/_health";
-import { decisionsRouter } from "./routers/decisions";
-import { scansRouter } from "./routers/scans";
+import { decisionsRouter, scansRouter } from "@/features/reviews/router";
 
 export const appRouter = router({
   health: healthRouter,

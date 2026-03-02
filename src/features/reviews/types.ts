@@ -1,9 +1,14 @@
-import type { ReviewStatus, Verdict, Severity } from "./db";
+import type {
+  ReviewStatus,
+  Verdict,
+} from "@/features/reviews/repositories/review-repository";
+import type { Severity } from "@/features/reviews/repositories/violation-repository";
 
 export interface SubmitListingInput {
   title: string;
   description: string;
   category: string;
+  tenantId: string;
   imageUrls?: string[] | undefined;
   metadata?: Record<string, unknown> | undefined;
 }
@@ -45,4 +50,10 @@ export interface ScanResultOutput {
   review: ScanReviewOutput;
   listing: ScanListingOutput;
   violations: ScanViolationOutput[];
+}
+
+export interface ReviewJobData {
+  reviewId: string;
+  listingId: string;
+  tenantId: string;
 }

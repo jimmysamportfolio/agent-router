@@ -1,25 +1,25 @@
 import { initTRPC } from "@trpc/server";
-import { createContainer, type Container } from "@/server/container";
-import { createQueueProvider } from "@/server/queue";
+import { type Container } from "@/server/container";
 
 let container: Container | undefined;
-let containerFactory: typeof createContainer = createContainer;
 
-function getContainer(): Container {
+async function getContainer(): Promise<Container> {
   if (container) return container;
+  const { createContainer } = await import("@/server/container");
+  const { createQueueProvider } = await import("@/lib/queue");
   const provider = createQueueProvider();
-  container = containerFactory((data) => provider.enqueue(data));
+  container = createContainer((data) => provider.enqueue(data));
   return container;
 }
 
-export function resetContainer(factory?: typeof createContainer): void {
+export function resetContainer(): void {
   container = undefined;
-  if (factory) containerFactory = factory;
 }
 
-export function createTRPCContext() {
+export async function createTRPCContext() {
+  const resolved: Container = await getContainer();
   return {
-    container: getContainer(),
+    container: resolved,
   };
 }
 
